@@ -1,0 +1,112 @@
+---
+title: "BraveRatsThesis"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+allTurns <- read.csv("playableSolutions.txt", header = FALSE, sep = "|", col.names = c("gamestate", "value", ".s1","p1_optimal",".s2", "p2_optimal", ".m", "value_matrix")) %>% 
+  separate(gamestate, c(".1", "p1_cards", ".2", "p2_cards", ".3", "wins", ".4", "generals", ".5", "spies", ".6", "holds"), sep = "-")
+
+allTurns <- allTurns %>% 
+  separate(p1_optimal, c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), sep=",", convert = TRUE) %>% 
+  separate(p2_optimal, c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7"), sep=",", convert = TRUE)
+allTurns <- allTurns %>% select(-starts_with("."))
+allTurns <- allTurns %>% mutate(cards_left = nchar(p1_cards),
+                                turn = 8-cards_left) %>% 
+  mutate(p1_c0 = grepl("0",p1_cards),
+          p1_c1 = grepl("1",p1_cards),
+          p1_c2 = grepl("2",p1_cards),
+          p1_c3 = grepl("3",p1_cards),
+          p1_c4 = grepl("4",p1_cards),
+          p1_c5 = grepl("5",p1_cards),
+          p1_c6 = grepl("6",p1_cards),
+          p1_c7 = grepl("7",p1_cards),
+          p2_c0 = grepl("0",p2_cards),
+          p2_c1 = grepl("1",p2_cards),
+          p2_c2 = grepl("2",p2_cards),
+          p2_c3 = grepl("3",p2_cards),
+          p2_c4 = grepl("4",p2_cards),
+          p2_c5 = grepl("5",p2_cards),
+          p2_c6 = grepl("6",p2_cards),
+          p2_c7 = grepl("7",p2_cards),
+          p1_wins = substring(wins, 1,1),
+         p2_wins = substring(wins, 1,1),
+         p1_general = substring(generals, 1,1),
+         p2_general = substring(generals, 2,2),
+         p1_spy = substring(spies, 1,1),
+         p2_spy = substring(spies,2,2),
+         p1_holds = substring(holds,1,1),
+         p2_holds = substring(holds,2,2)
+         ) %>% 
+  mutate(outcome = ifelse(p1_wins>=4, 1, ifelse(p2_wins>=4, 0, ifelse(turn==8,0.5, NA))),
+         is_terminal_state = !is.na(outcome))
+```
+
+```{r}
+allTurns %>% head()
+```
+
+```{r}
+hist(allTurns$value)
+```
+
+```{r}
+allTurns %>% 
+  ggplot(aes(x = turn)) +
+  geom_histogram()
+
+allTurns %>% 
+  group_by(turn) %>% 
+  summarize(count = n())
+```
+
+```{r}
+allTurns %>% 
+  ggplot(aes(x = factor(turn), y = value)) +
+  geom_violin()
+
+allTurns %>% 
+  ggplot(aes(x = factor(turn), y = value)) +
+  geom_point()
+```
+
+```{r}
+allTurns %>% 
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_grid(rows = vars(cards_left), scales = "free_y")
+```
+
+```{r}
+card_optimals <- allTurns %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") 
+
+card_optimals %>% 
+  ggplot(aes(x = optimal_prob)) +
+  geom_histogram(bins = 10) +
+  facet_grid(rows = vars(card))
+```
+
+```{r}
+allTurns
+```
+
+```{r}
+card_optimals %>% 
+  select(card,turn,optimal_prob) %>% 
+  filter(!is.na(optimal_prob)) %>% 
+  group_by(card,turn) %>% 
+  summarize(avg_prob = mean(optimal_prob)) %>% 
+  ggplot(aes(x = turn, y = avg_prob, color = card)) +
+  geom_line()
+  
+```
+
+```{r}
+
+```
