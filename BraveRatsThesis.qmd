@@ -4,18 +4,29 @@ format: html
 editor: visual
 ---
 
+# Setup
+
 ```{r}
 library(tidyverse)
+library(tidyclust)
+library(tclust)
+library(tidymodels)
 ```
 
 ```{r}
+# Main data
+
 allTurns <- read.csv("playableSolutions.txt", header = FALSE, sep = "|", col.names = c("gamestate", "value", ".s1","p1_optimal",".s2", "p2_optimal", ".m", "value_matrix")) %>% 
+  mutate(gamestate = substr(gamestate,1, nchar(gamestate)-2)) %>% # Fixing error where extra characters ":v" are added to gamestate
+  mutate(gamestate_str = gamestate) %>% #Making a copy to be used as row labels
   separate(gamestate, c(".1", "p1_cards", ".2", "p2_cards", ".3", "wins", ".4", "generals", ".5", "spies", ".6", "holds"), sep = "-")
 
+rownames(allTurns) <- allTurns$gamestate_str
 allTurns <- allTurns %>% 
-  separate(p1_optimal, c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), sep=",", convert = TRUE) %>% 
-  separate(p2_optimal, c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7"), sep=",", convert = TRUE)
-allTurns <- allTurns %>% select(-starts_with("."))
+  separate(p1_optimal, paste("p1_o", 0:7, sep=''), sep=",", convert = TRUE) %>% 
+  separate(p2_optimal, paste("p2_o", 0:7, sep=''), sep=",", convert = TRUE)
+
+allTurns <- allTurns %>% select(-starts_with(".")) # get rid of temp columns starting with "."
 allTurns <- allTurns %>% mutate(cards_left = nchar(p1_cards),
                                 turn = 8-cards_left) %>% 
   mutate(p1_c0 = grepl("0",p1_cards),
@@ -34,22 +45,51 @@ allTurns <- allTurns %>% mutate(cards_left = nchar(p1_cards),
           p2_c5 = grepl("5",p2_cards),
           p2_c6 = grepl("6",p2_cards),
           p2_c7 = grepl("7",p2_cards),
-          p1_wins = substring(wins, 1,1),
-         p2_wins = substring(wins, 1,1),
-         p1_general = substring(generals, 1,1),
-         p2_general = substring(generals, 2,2),
-         p1_spy = substring(spies, 1,1),
-         p2_spy = substring(spies,2,2),
-         p1_holds = substring(holds,1,1),
-         p2_holds = substring(holds,2,2)
-         ) %>% 
-  mutate(outcome = ifelse(p1_wins>=4, 1, ifelse(p2_wins>=4, 0, ifelse(turn==8,0.5, NA))),
-         is_terminal_state = !is.na(outcome))
+          p1_wins = as.numeric(substring(wins, 1,1)),
+         p2_wins = as.numeric(substring(wins, 2,2)),
+         p1_general = substring(generals, 1,1)==1,
+         p2_general = substring(generals, 2,2)==1,
+         p1_spy = substring(spies, 1,1)==1,
+         p2_spy = substring(spies,2,2)==1,
+         p1_holds = as.numeric(substring(holds,1,1)),
+         p2_holds = as.numeric(substring(holds,2,2))
+         )
+
+# c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7")
+# c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7")
 ```
 
 ```{r}
-allTurns %>% head()
+allTurns %>% 
+  filter(turn == 2) %>% filter(p1_c2==FALSE) %>% 
+  head()
 ```
+
+```{r}
+# A dataframe of just the optimal probabilities (0 for non-possibilities)
+p1_optimal_turns <- allTurns %>% 
+  #filter(turn <=5) %>% 
+  filter(p1_spy == 0 && p2_spy == 0) %>% 
+  select("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7") %>% 
+  mutate_all(~replace(., is.na(.), 0))
+```
+
+## Human data
+
+```{r}
+#braverats <- read.csv("BraveRatsData.csv")
+source("readHumanData.r")
+
+head(braverats_adjusted, 30)
+```
+
+```{r}
+joined_human_ai <- braverats_adjusted %>% left_join(allTurns, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
+                                                "p1_wins", "p2_wins", "p1_holds", "p2_holds",
+                                                "p1_spy", "p2_spy", "p1_general", "p2_general"))
+```
+
+# EDA
 
 ```{r}
 hist(allTurns$value)
@@ -107,6 +147,105 @@ card_optimals %>%
   
 ```
 
-```{r}
 
+
+# Clustering
+
+
+
+```{r}
+k <- 12
+kmeans_spec <- k_means(num_clusters=k)
+
+kmeans_fit <- kmeans_spec %>% fit(~p1_o0+p1_o1+p1_o2+p1_o3+p1_o4+p1_o5+p1_o6+p1_o7,data = p1_optimal_turns)
+
+kmeans_fit$fit$tot.withinss
+kmeans_fit$fit$betweenss
+
+df_clusters <- kmeans_fit$fit$centers %>% 
+  data.frame() %>% mutate(cluster_num = 1:k) %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") 
+
+df_clusters %>% 
+  ggplot(aes(x = card, y = optimal_prob)) +
+  geom_bar(stat = "identity") +
+  facet_grid(rows = vars(cluster_num))
 ```
+
+```{r}
+# Total number of turns in each cluster
+cluster_info <- allTurns %>% 
+  #filter(turn <=5) %>% 
+  filter(p1_spy == 0 && p2_spy == 0) %>% 
+  mutate(cluster = kmeans_fit$fit$cluster)
+
+cluster_info %>% group_by(cluster) %>% 
+  summarize(n = n()) %>% 
+  mutate(prop = n/sum(n))
+```
+
+## Optimal data for each cluster
+
+```{r}
+# What turns are this particular cluster in?
+
+cluster_info %>%
+  group_by(turn, cluster) %>% 
+  summarize(count = n()) %>% 
+  pivot_wider(names_from ="turn", names_prefix="Turn_", values_from=count, id_cols=cluster)
+
+# How are the optimal probabilities distributed in real turns from this cluster?
+# TRY TO ADD CENTROIDS TO THIS
+cluster_info %>% 
+  filter(cluster==3) %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"),
+               names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") %>% 
+  ggplot(aes(x = optimal_prob)) +
+  geom_histogram(bins = 10) +
+  facet_grid(rows = vars(card))
+```
+
+**Human data counts in each cluster**
+
+```{r, waring=FALSE}
+# Joining human data with clusters
+human_clusters <- braverats_adjusted %>% left_join(cluster_info, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
+                                                "p1_wins", "p2_wins", "p1_holds", "p2_holds",
+                                                "p1_spy", "p2_spy", "p1_general", "p2_general"))
+
+# Overall counts and props
+
+human_clusters %>% group_by(cluster) %>% 
+  summarize(n = n()) %>% 
+  mutate(prop = n/sum(n)) %>% 
+  arrange(desc(n))
+
+# By person counts and props
+
+human_clusters %>% group_by(cluster, p1_name) %>% 
+  summarize(n = n()) %>% 
+  group_by(p1_name) %>% 
+  mutate(prop_for_player = n/sum(n)) %>% 
+  arrange(desc(n))
+```
+
+```{r}
+# What turns are each cluster in for humans?
+
+human_clusters %>%
+  group_by(turn, cluster) %>% 
+  summarize(count = n()) %>% 
+  pivot_wider(names_from ="turn", names_prefix="Turn_", values_from=count, id_cols=cluster)
+
+# How are the optimal probabilities distributed in real turns from this cluster?
+human_clusters %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"),
+               names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") %>% 
+  ggplot(aes(x = optimal_prob)) +
+  geom_histogram(bins = 10) +
+  facet_grid(rows = vars(card))
+```
+
+# Linear Models
+
+# Other models
