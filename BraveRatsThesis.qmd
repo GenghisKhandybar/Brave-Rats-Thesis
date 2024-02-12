@@ -28,7 +28,7 @@ allTurns <- allTurns %>%
 
 allTurns <- allTurns %>% select(-starts_with(".")) # get rid of temp columns starting with "."
 allTurns <- allTurns %>% mutate(cards_left = nchar(p1_cards),
-                                turn = 8-cards_left) %>% 
+                                turn = 9-cards_left) %>% 
   mutate(p1_c0 = grepl("0",p1_cards),
           p1_c1 = grepl("1",p1_cards),
           p1_c2 = grepl("2",p1_cards),
@@ -246,6 +246,59 @@ human_clusters %>%
   facet_grid(rows = vars(card))
 ```
 
-# Linear Models
+# Logistic regression
 
-# Other models
+```{r}
+df_predictors <- allTurns %>% 
+  filter(p1_spy==0, p2_spy==0) %>% 
+  select(
+  p1_o0,p1_o1,p1_o2,p1_o3,p1_o4,p1_o5,p1_o6,p1_o7, #Outputs
+  p1_c0,p1_c1,p1_c2,p1_c3,p1_c4,p1_c5,p1_c6,p1_c7, #Inputs
+          p2_c0,p2_c1,p2_c2,p2_c3,p2_c4,p2_c5,p2_c6,p2_c7,
+          p1_wins,
+         p2_wins,
+         p1_general,p2_general,
+         #p1_spy,p2_spy,
+         p1_holds,p2_holds) %>% 
+  mutate_all(~replace(., is.na(.), 0))
+
+lin_reg_spec <- logistic_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+ins_lm_fit <- lin_reg_spec %>%
+  fit(p1_o7 ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = df_predictors) 
+
+ins_lm_fit$fit$coefficients
+```
+
+# Spy turns
+
+```{r}
+# Given that card X is in hand and you've been spied, how often is card X optimal to play? 
+# Split by turn of game
+
+allTurns %>% 
+  filter(p2_spy==1) %>% 
+  group_by(turn) %>% 
+  summarize(across(c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), ~mean(.x, na.rm=TRUE)))
+```
+
+```{r}
+allTurns %>% 
+  filter(p2_spy==TRUE, turn==2)
+```
+
+```{r}
+allTurns %>% 
+  filter(p2_spy==TRUE, turn==3) %>% 
+  select(p1_cards, p2_cards, "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7", "p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7")
+```
+
+
