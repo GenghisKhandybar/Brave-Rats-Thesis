@@ -296,9 +296,57 @@ allTurns %>%
 ```
 
 ```{r}
-allTurns %>% 
-  filter(p2_spy==TRUE, turn==3) %>% 
-  select(p1_cards, p2_cards, "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7", "p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7")
+spy_optimal_cards <- allTurns %>% 
+  filter(p2_spy==TRUE) %>% 
+  #select(p1_cards, p2_cards, "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7", "p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7") %>% 
+  # Extracting the optimal card for each player
+  pivot_longer(cols = c( "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "p1_card", values_to = "optimal_prob") %>% 
+  filter(optimal_prob==1) %>% 
+  mutate(p1_card=as.factor(substring(p1_card,5,6))) %>% 
+  select(-optimal_prob) %>% 
+  pivot_longer(cols = c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7"), names_to = "p2_card", values_to = "optimal_prob") %>% 
+  filter(optimal_prob==1) %>% 
+  mutate(p2_card=as.factor(substring(p2_card,5,6))) %>% 
+  select(-optimal_prob)
+
+spy_optimal_cards %>% 
+  filter(turn<=3) %>% 
+  select(p1_cards, p2_cards,wins, generals, spies, holds, p1_card, p2_card)
 ```
 
+### Decision tree for spy turns
+
+```{r}
+library(rpart)
+
+library(rpart.plot)
+
+
+tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+spy_recipe = recipe(p1_card ~ #p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = spy_optimal_cards)
+
+spy_wf = workflow() %>%
+  add_recipe(spy_recipe) %>%
+  add_model(tree_mod)
+
+spy_fit <- spy_wf %>% fit(spy_optimal_cards)
+
+tree_fitted <- spy_fit %>% 
+  extract_fit_parsnip()
+
+rpart.plot(tree_fitted$fit)
+```
+
+```{r}
+tree_fitted
+```
 
