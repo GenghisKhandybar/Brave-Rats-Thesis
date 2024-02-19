@@ -147,11 +147,7 @@ card_optimals %>%
   
 ```
 
-
-
 # Clustering
-
-
 
 ```{r}
 k <- 12
@@ -263,7 +259,7 @@ df_predictors <- allTurns %>%
   mutate_all(~replace(., is.na(.), 0))
 
 lin_reg_spec <- logistic_reg() %>%
-  set_mode("regression") %>%
+  #set_mode("regression") %>%
   set_engine("lm")
 
 ins_lm_fit <- lin_reg_spec %>%
@@ -343,10 +339,121 @@ spy_fit <- spy_wf %>% fit(spy_optimal_cards)
 tree_fitted <- spy_fit %>% 
   extract_fit_parsnip()
 
+tree_fitted
+
 rpart.plot(tree_fitted$fit)
 ```
 
+## Analysis of viability
+
 ```{r}
+# This dataset looks card-by-card whether each card is viable in a particular gamestate.
+# The idea is that if it's simple to tell which cards are viable, we can more easily figure out the play patterns that will work
+
+card_viability <- allTurns %>% 
+  filter(p2_spy==FALSE, turn <8) %>% 
+  # Extracting the optimal card for each player
+  pivot_longer(cols = c( "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "p1_card", values_to = "p1_optimal_prob") %>% 
+  filter(!is.na(p1_optimal_prob)) %>% 
+  mutate(p1_card=as.factor(substring(p1_card,5,6)),
+         p1_card_viable = ifelse(p1_optimal_prob>0,"viable","not viable")) %>% 
+  pivot_longer(cols = c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7"), names_to = "p2_card", values_to = "p2_optimal_prob") %>% 
+  filter(!is.na(p2_optimal_prob)) %>% 
+  mutate(p2_card=as.factor(substring(p2_card,5,6)),
+         p2_card_viable = ifelse(p2_optimal_prob>0,"viable","not viable"))
+
+card_viability %>% sample_n(10)
+```
+
+For card 0 (musician)
+
+```{r}
+card_of_interest = 0 # Doing each card's tree 1 at a time
+
+tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+spy_recipe = recipe(p1_card_viable ~ #p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = card_viability)
+
+spy_wf = workflow() %>%
+  add_recipe(spy_recipe) %>%
+  add_model(tree_mod)
+
+spy_fit <- spy_wf %>% fit(card_viability %>% filter(p1_card==card_of_interest))
+
+tree_fitted <- spy_fit %>% 
+  extract_fit_parsnip()
+
 tree_fitted
+
+rpart.plot(tree_fitted$fit)
+```
+For princess (1)
+```{r}
+card_of_interest = 1 # Doing each card's tree 1 at a time
+
+tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+spy_recipe = recipe(p1_card_viable ~ #p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = card_viability)
+
+spy_wf = workflow() %>%
+  add_recipe(spy_recipe) %>%
+  add_model(tree_mod)
+
+spy_fit <- spy_wf %>% fit(card_viability %>% filter(p1_card==card_of_interest))
+
+tree_fitted <- spy_fit %>% 
+  extract_fit_parsnip()
+
+tree_fitted
+
+rpart.plot(tree_fitted$fit)
+```
+
+For card 7 (Prince)
+
+```{r}
+card_of_interest = 7 # Doing each card's tree 1 at a time
+
+tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+spy_recipe = recipe(p1_card_viable ~ #p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = card_viability)
+
+spy_wf = workflow() %>%
+  add_recipe(spy_recipe) %>%
+  add_model(tree_mod)
+
+spy_fit <- spy_wf %>% fit(card_viability %>% filter(p1_card==card_of_interest))
+
+tree_fitted <- spy_fit %>% 
+  extract_fit_parsnip()
+
+tree_fitted
+
+rpart.plot(tree_fitted$fit)
+  
 ```
 

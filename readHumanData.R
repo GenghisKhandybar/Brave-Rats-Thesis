@@ -16,7 +16,7 @@ braverats <- braverats %>%
 
 # We want every column "PX.Card.X" to become a new row to begin our analysis 
 
-braverats_by_turn <- braverats %>% 
+braverats <- braverats %>% 
   pivot_longer(
     # So, we select all columns that start with "P"
     cols = starts_with("P"),  
@@ -30,7 +30,7 @@ braverats_by_turn <- braverats %>%
 
 # Next, we want to widen this to just have one row per turn of each game. That row should contain both players' cards.
 
-braverats_by_turn <- braverats_by_turn %>% 
+braverats <- braverats %>% 
   pivot_wider(id_cols = c("Game", "Winner", "Turn"),
               names_from = "Player",
               names_prefix = "P",
@@ -39,7 +39,7 @@ braverats_by_turn <- braverats_by_turn %>%
 
 # Lastly, we will add in the special effects from the cards and evaluate basic events on each turn such as who won each throw.
 
-braverats_by_turn <- braverats_by_turn %>% 
+braverats <- braverats %>% 
   group_by(Game) %>% 
   mutate(
     # Creates new columns for previous move, for simplicity. On the first turn these are set to -1.
@@ -129,7 +129,7 @@ braverats_by_turn <- braverats_by_turn %>%
   ungroup()
 
 
-P1_Hand <- braverats_by_turn %>% 
+P1_Hand <- braverats %>% 
   mutate(temp_1s = 1) %>% 
   # Create column for each of P1's cards
   pivot_wider(names_from = P1, values_from = temp_1s, values_fill = 0, names_prefix = "P1_C") %>% 
@@ -140,7 +140,7 @@ P1_Hand <- braverats_by_turn %>%
   ungroup() %>% 
   select(starts_with("P1_C"))
 
-P2_Hand <- braverats_by_turn %>% 
+P2_Hand <- braverats %>% 
   mutate(temp_1s = 1) %>% 
   # Create column for each of P2's cards
   pivot_wider(names_from = P2, values_from = temp_1s, values_fill = 0, names_prefix = "P2_C") %>%
@@ -151,17 +151,20 @@ P2_Hand <- braverats_by_turn %>%
   ungroup() %>% 
   select(starts_with("P2_C"))
 
-# Add the current hand columns to braverats_by_turn
+# Add the current hand columns to braverats
 
-braverats_by_turn <- braverats_by_turn %>% 
+braverats <- braverats %>% 
   cbind(P1_Hand) %>% 
   cbind(P2_Hand)
+
+rm(P1_Hand)
+rm(P2_Hand)
 
 # Function to urn the data to long form.
 
 # We want every column "PX.Card.X" to become a new row to begin our analysis 
 compute_results <- function(braverats) {
-  braverats_by_turn <- braverats %>% 
+  braverats <- braverats %>% 
     pivot_longer(
       # So, we select all columns that start with "P"
       cols = starts_with("P"),  
@@ -175,7 +178,7 @@ compute_results <- function(braverats) {
   
   # Next, we want to widen this to just have one row per turn of each game. That row should contain both players' cards.
   
-  braverats_by_turn <- braverats_by_turn %>% 
+  braverats <- braverats %>% 
     pivot_wider(id_cols = c("Game", "Winner", "Turn"),
                 names_from = "Player",
                 names_prefix = "P",
@@ -184,7 +187,7 @@ compute_results <- function(braverats) {
   
   # Lastly, we will add in the special effects from the cards and evaluate basic events on each turn such as who won each throw.
   
-  braverats_by_turn <- braverats_by_turn %>% 
+  braverats <- braverats %>% 
     group_by(Game) %>% 
     mutate(
       # Creates new columns for previous move, for simplicity. On the first turn these are set to -1.
@@ -275,7 +278,7 @@ compute_results <- function(braverats) {
   
   # Make hand variables
   
-  P1_Hand <- braverats_by_turn %>% 
+  P1_Hand <- braverats %>% 
     mutate(temp_1s = 1) %>% 
     # Create column for each of P1's cards
     pivot_wider(names_from = P1, values_from = temp_1s, values_fill = 0, names_prefix = "P1_C") %>% 
@@ -286,7 +289,7 @@ compute_results <- function(braverats) {
     ungroup() %>% 
     select(starts_with("P1_C"))
   
-  P2_Hand <- braverats_by_turn %>% 
+  P2_Hand <- braverats %>% 
     mutate(temp_1s = 1) %>% 
     # Create column for each of P2's cards
     pivot_wider(names_from = P2, values_from = temp_1s, values_fill = 0, names_prefix = "P2_C") %>%
@@ -297,36 +300,36 @@ compute_results <- function(braverats) {
     ungroup() %>% 
     select(starts_with("P2_C"))
   
-  # Add the current hand columns to braverats_by_turn
+  # Add the current hand columns to braverats
   
-  braverats_by_turn <- braverats_by_turn %>% 
+  braverats <- braverats %>% 
     cbind(P1_Hand) %>% 
     cbind(P2_Hand)
   
-  return(braverats_by_turn)
+  return(braverats)
 }
 
-get_both_sides <- function(braverats_by_turn){
+get_both_sides <- function(braverats){
   # Finally, we need to pivot this table to its longest form, where each row is a single card played by a single player.
   # This will remove the "Player 1" vs "Player 2" distinction.
   # To do this, we simply make a replica dataset with P1 and P2 switched, and append it to our existing dataset.
   
   
-  reversed_column_names <- sub('P1', 'P3', colnames(braverats_by_turn), fixed=TRUE) # Swap all 1's to 3's to avoid interferance
+  reversed_column_names <- sub('P1', 'P3', colnames(braverats), fixed=TRUE) # Swap all 1's to 3's to avoid interferance
   reversed_column_names <- sub('P2', 'P1', reversed_column_names, fixed=TRUE) # Swap all 2's to 1's
   reversed_column_names <- sub('P3', 'P2', reversed_column_names, fixed=TRUE) # Swap all 3's to 2's (effectively swapping all 1's to 2's)
   
-  braverats_by_turn_flipped <- braverats_by_turn
-  colnames(braverats_by_turn_flipped) <- reversed_column_names
+  braverats_flipped <- braverats
+  colnames(braverats_flipped) <- reversed_column_names
   
   # We also have to flip the Winner column
-  braverats_by_turn_flipped <- braverats_by_turn_flipped %>% 
+  braverats_flipped <- braverats_flipped %>% 
     mutate(Winner = 1 - Winner)
   
-  braverats_by_turn_flipped$Flipped <- TRUE
-  braverats_by_turn$Flipped <- FALSE
+  braverats_flipped$Flipped <- TRUE
+  braverats$Flipped <- FALSE
   
-  braverats_complete <- rbind(braverats_by_turn, braverats_by_turn_flipped)
+  braverats_complete <- rbind(braverats, braverats_flipped)
   braverats_complete <- braverats_complete %>% 
     mutate(Outcome = ifelse(Winner == 1, "Loss", ifelse(Winner == 0, "Win", "Tie")),
            Round_Winner = ifelse(Round_Winner_P1, "Win",
@@ -334,35 +337,38 @@ get_both_sides <- function(braverats_by_turn){
 }
 
 # Add player names back in
-braverats_by_turn <- braverats_by_turn %>% 
+braverats <- braverats %>% 
   left_join(player_names, by = "Game")
 
 # Finally, we need to pivot this table to its longest form, where each row is a single card played by a single player.
 # This will remove the "Player 1" vs "Player 2" distinction.
 # To do this, we simply make a replica dataset with P1 and P2 switched, and append it to our existing dataset.
 
-reversed_column_names <- sub('P1', 'P3', colnames(braverats_by_turn), fixed=TRUE) # Swap all 1's to 3's to avoid interferance
+reversed_column_names <- sub('P1', 'P3', colnames(braverats), fixed=TRUE) # Swap all 1's to 3's to avoid interferance
 reversed_column_names <- sub('P2', 'P1', reversed_column_names, fixed=TRUE) # Swap all 2's to 1's
 reversed_column_names <- sub('P3', 'P2', reversed_column_names, fixed=TRUE) # Swap all 3's to 2's (effectively swapping all 1's to 2's)
 
-braverats_by_turn_flipped <- braverats_by_turn
-colnames(braverats_by_turn_flipped) <- reversed_column_names
+braverats_flipped <- braverats
+colnames(braverats_flipped) <- reversed_column_names
+rm(reversed_column_names)
 
 # We also have to flip the Winner column
-braverats_by_turn_flipped <- braverats_by_turn_flipped %>% 
+braverats_flipped <- braverats_flipped %>% 
   mutate(Winner = 1 - Winner)
 
-braverats_by_turn_flipped$Flipped <- TRUE
-braverats_by_turn$Flipped <- FALSE
+braverats_flipped$Flipped <- TRUE
+braverats$Flipped <- FALSE
 
-braverats_complete <- rbind(braverats_by_turn, braverats_by_turn_flipped)
-braverats_complete <- braverats_complete %>% 
+braverats <- rbind(braverats, braverats_flipped)
+rm(braverats_flipped) # Freeing up memory
+
+braverats <- braverats %>% 
   mutate(Outcome = ifelse(Winner == 1, "Loss", ifelse(Winner == 0, "Win", "Tie")),
          Round_Winner = ifelse(Round_Winner_P1, "Win",
                                ifelse(Round_Winner_P2, "Loss", "Tie")))
 
 # Adjust to match optimal data
-braverats_adjusted <- braverats_complete %>% 
+braverats <- braverats %>% 
   mutate(p1_spy = P2_Spied,
          p2_spy = P1_Spied
          ) %>% 
@@ -374,8 +380,8 @@ braverats_adjusted <- braverats_complete %>%
   mutate(across(matches("^P[12]_C"), ~as.logical(.))) %>% 
   select(-P1_Spied, -P2_Spied, -P1_Strength, -P2_Strength, -Round_Winner_P1, Round_Winner_P2)
 
-colnames(braverats_adjusted) <- sub('P1_C', 'p1_c', colnames(braverats_adjusted), fixed=TRUE)
-colnames(braverats_adjusted) <- sub('P2_C', 'p2_c', colnames(braverats_adjusted), fixed=TRUE)
+colnames(braverats) <- sub('P1_C', 'p1_c', colnames(braverats), fixed=TRUE)
+colnames(braverats) <- sub('P2_C', 'p2_c', colnames(braverats), fixed=TRUE)
 
-colnames(braverats_adjusted)
+colnames(braverats)
 colnames(allTurns)
