@@ -182,13 +182,13 @@ class ratGame:
         else:
             (p1, p2) = 0, 1
 
-
+        # Capping wins at 4 and holds at 3, as anything beyond those is irrelevant
         game_str = "p1-" + ''.join(map(str, self.cardsAvailiable[p1])) + \
             "-p2-" + ''.join(map(str, self.cardsAvailiable[p2])) + \
-            "-w-" + str(self.wins[p1]) + str(self.wins[p2]) + \
+            "-w-" + str(min(4,self.wins[p1])) + str(min(4,self.wins[p2])) + \
             "-g-" + str(self.generals[p1]) + str(self.generals[p2]) + \
             "-s-" + str(self.spies[p1]) + str(self.spies[p2]) + \
-            "-h-" + str(self.holds[p1]) + str(self.holds[p2])
+            "-h-" + str(min(3,self.holds[p1])) + str(min(3,self.holds[p2]))
          
         return(game_str)
 
@@ -250,7 +250,37 @@ class ratGame:
         elif self.wins[1] >= 4:
             self.gameWinner = 1
 
-    def getValue(self, knownValues, knownSolutions):
+    def suboptimal_simultaneous_solve(self, currentRoundMatrix, strategies):
+        strat_results = [0,0] # 0's are placeholders for distributions
+
+        # Grab the optimal strategies if necessary for either player
+        if strategies[0] == "Optimal" or strategies[1] == "Optimal":
+            optimal_strats = self.simultaneous_solve(self, currentRoundMatrix)[1]
+        
+        for i in range(2):
+            if strategies[i] == "Optimal":
+                strat_results[i] = optimal_strats[i]
+            else:
+                strat_results[i] = strategies[i].get_strategy(self, player = i)
+            # Validate the strategy
+            if abs(sum(strat_results[i])-1) > 0.00001:
+                print(f"WARNING: Invalid strategy on turn {self.get_game_str()}: {strat_results[i]}")
+
+        # Calculate the value of the game given these strategies
+        # MAKE SURE THIS MATH IS CORRECT
+        p2_card_vals = np.matmul(np.array(strat_results[0]), currentRoundMatrix)
+        value = np.matmul(np.array(strat_results[1]), p2_card_vals)
+
+        return (value, [list(strat_results[0]), list(strat_results[1])], ["Non-optimal"])
+
+
+
+    def getValue(self, knownValues, knownSolutions, strategies = ["Optimal", "Optimal"]):
+        # Returns the value of the current gamestate
+        # Strategy can either be "Optimal" or an object with property get_strategy that takes a gamestate (and player #)
+        # and returns a list of probabilities for each of that player's possible cards.
+
+        #First,  check if the game is over (win/loss or tie)
         if self.gameWinner is not None:
             knownSolutions[self.get_game_str()] = (1 - self.gameWinner, [[0],[0]], "")
             return 1 - self.gameWinner
@@ -258,28 +288,26 @@ class ratGame:
             knownSolutions[self.get_game_str()] = (0.5, [[0],[0]], "")
             return 0.5
 
+        # If the game is not over, we must make a matrix of all sub-games, and calculate value from it.
         currentRoundMatrix = np.zeros(shape=(self.game_size,self.game_size))
-
+        # Start with a k by k matrix, and get the value for each corresponding sub-state.
         for p1_next in self.cardsAvailiable[0]:
             for p2_next in self.cardsAvailiable[1]:
-                subGame = ratGame()
+                subGame = ratGame() #ratGame(self.get_game_str())
+                # Copying manually should be faster than using the gamestring
                 subGame.cardsAvailiable = [self.cardsAvailiable[0].copy(), self.cardsAvailiable[1].copy()]
                 subGame.wins = self.wins[:]
                 subGame.generals = self.generals[:]
                 subGame.spies = self.spies[:]
                 subGame.holds = self.holds[:]
-                #subGame.playRound([p1_next, p2_next])
+
                 subGame.advanceGameState([p1_next, p2_next])
 
                 subGameStr = subGame.get_game_str()
                 
-
                 if subGameStr in knownValues:
-                    # If we already know this state, great
-                    #print("Playing [" + str(p1_next) + ", " + str(p2_next) + "], Found value " + str(round(knownValues[subGameStr],4)) + " for sub-game: " + subGameStr)
-                    
+                    # We may already know this state's value
                     currentRoundMatrix[p1_next][p2_next] = knownValues[subGameStr]
-                    #print("Found existing value: " + str(knownValues[subGameStr]))
                     
                 else: 
                     # Otherwise, we have to solve the sub-game before solving this game
@@ -298,19 +326,31 @@ class ratGame:
 
         game_str = self.get_game_str()     
 
-        if max(self.spies) == 0:
-            # Non-spy round - solve via simultaneous move (simplex method)
-            gameResult = self.simultaneous_solve(currentRoundMatrix)
+        if strategies[0] == "Optimal" and strategies[1] == "Optimal":
+            if max(self.spies) == 0:
+                # Non-spy round - solve via simultaneous move (simplex method)
+                gameResult = self.simultaneous_solve(currentRoundMatrix)
+            else:
+                # Spy round - sequential solve (minmax)
+                gameResult = self.sequential_sovle(currentRoundMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
         else:
-            # Spy round - sequential solve (minmax)
-            gameResult = self.sequential_sovle(currentRoundMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+            
+            if max(self.spies) == 0:
+                # Non-spy round - solve via simultaneous move (simplex method)
+
+                gameResult = self.suboptimal_simultaneous_solve(currentRoundMatrix, strategies)
+            else:
+                # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
+                # Spy round - sequential solve (minmax)
+                gameResult = self.sequential_sovle(currentRoundMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+
             
         knownSolutions[game_str] = gameResult[0]
         knownValues[game_str] = float(gameResult[1])
 
         if len(self.cardsAvailiable[0]) >= 7: # Status progress report
             #print("Finished solving gamestate " + self.get_game_str())
-            print("Finished solving state" + self.get_game_str() + " with value " + str(gameResult[1]))
+            print("Finished solving state" + game_str + " with value " + str(gameResult[1]))
 
         return gameResult[1]
     
@@ -496,16 +536,8 @@ def game_loop():
         if(response == "n"):
             break
 
-# %%
-
-
-
-# %%
-
-path = "knownSolutions.txt"
-
-if __name__ == "__main__":
-    # Try to read the file "knownSolutions.txt"
+def default_console_start(path):
+        # Try to read the file "knownSolutions.txt"
     # If we can't, create the solutions from scratch
     try:
         # Read solutions from file (5-10 seconds)
@@ -535,6 +567,16 @@ if __name__ == "__main__":
     write_known_solutions(knownSolutions, "knownSolutions2.txt", write_type="new")
 
     game_loop()
-
-
 # %%
+
+path = "knownSolutions.txt"
+
+if __name__ == "__main__":
+    #default_console_start(path)
+    testGame = ratGame('p1-01267-p2-01237-w-22-g-00-s-00-h-00')
+    # This will solve the game
+    knownValues = {}
+    knownSolutions = {}
+
+    testGame.getValue(knownValues, knownSolutions)
+    print(knownSolutions)
