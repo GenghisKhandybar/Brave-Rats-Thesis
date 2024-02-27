@@ -1,2 +1,5 @@
 knownSolutions.txt
 playableSolutions.txt
+*.pyc
+.RData
+.Rhistory

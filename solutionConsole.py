@@ -7,6 +7,10 @@ import nashpy as nash
 import numpy as np
 import json
 
+# other models
+import models
+import helperFunctions
+
 # %%
 def aggregate_solution(nas_subgame, game_size):
     # Takes all availiable strategies and averages them for a final result
@@ -54,97 +58,18 @@ def safe_lemke_howson(game, game_size, initial_dropped_label):
 
         return(safe_lemke_howson(game, game_size, initial_dropped_label+1))
 
-def reverseGameState(gameState):
-    game_str = gameState.split("-")
-    return "p1-" + game_str[3] + "-p2-" + game_str[1] + \
-        "-w-" + game_str[5][1] + game_str[5][0] + \
-        "-g-" + game_str[7][1] + game_str[7][0] + \
-        "-s-" + game_str[9][1] + game_str[9][0] + \
-        "-h-" + game_str[11][1] + game_str[11][0]
-
-def get_solution_save_string(solution):
-    ans = ""
-    ans += "v|" + str(solution[0])
-    ans += "|s1|" + ",".join(map(str,solution[1][0]))
-    ans += "|s2|" + ",".join(map(str,solution[1][1]))
-    ans += "|m|"
-    for line_i in range(len(solution[2])):
-        ans += " $ " + str(line_i) + " $ "
-        ans += ",".join(map(str,solution[2][line_i]))
-    return ans
-
-def get_solution_save_string_2(game, solution):
-    # This version has probabilities for all 8 cards 
-    
-    ans = ""
-    ans += "v|" + str(solution[0])
-    long_solutions = []
-    for p in range(2):
-        s = ""
-        sol_index = 0
-        for i in range(8):
-            if i in game.cardsAvailiable[p]:
-                s += str(solution[1][p][sol_index])
-                sol_index += 1
-            if i != 7:
-                s += ","
-        long_solutions.append(s)
-
-    ans += "|s1|" + long_solutions[0]
-    ans += "|s2|" + long_solutions[1]
-    ans += "|m|"
-    for line_i in range(len(solution[2])):
-        ans += " $ " + str(line_i) + " $ "
-        ans += ",".join(map(str,solution[2][line_i]))
-    return ans
-
-def get_solution_from_string(solution_string):
-    sections = solution_string.split("|")
-    value = float(sections[1])
-    s1 = np.array(sections[3].split(","), dtype = float)
-    s2 = np.array(sections[5].split(","), dtype = float)
-    m_strings = sections[7].split(" $ ")
-    m = []
-    for i in range(2, len(m_strings), 2):
-        m.append(m_strings[i].split(","))
-    return (value, [s1,s2], np.array(m, dtype = float))
-
 def write_known_solutions(knownSolutions, path, write_type = "original"):
     with open(path, 'w') as f:
         for key, value in knownSolutions.items():
             if write_type == "original":
-                f.write('%s:%s\n' % (key, get_solution_save_string(value)))
+                f.write('%s:%s\n' % (key, helperFunctions.get_solution_save_string(value)))
             else:
                 game = ratGame(game_str = key)
                 if game.gameWinner is None and len(game.wins) == 2: #for 2-digit wins issue
                     #print(key)
-                    f.write('%s:%s\n' % (key, get_solution_save_string_2(game, value)))
+                    f.write('%s:%s\n' % (key, helperFunctions.get_solution_save_string_2(game, value)))
 
-def write_known_values(knownValues, path):
-    with open(path, 'w') as convert_file:
-        convert_file.write(json.dumps(knownValues))
-
-def read_known_solutions(path):
-    # Returns both known solutions and known values from knownSolutions.txt
-    knownSolutions = {}
-    knownValues = {}
-
-    with open(path, 'r') as f:
-
-        for line in f:
-            key_val = line.split(":")
-            key = key_val[0]
-
-            val = get_solution_from_string(key_val[1])
-            game_val = val[0] # Just game value (win probability)
-            knownSolutions[key] = val
-            knownValues[key] = game_val 
-    return(knownValues, knownSolutions)
-
-
-
-
-# %%
+# %% ratGame class
 class ratGame:
     def __init__(self, game_str = None):
         
@@ -250,32 +175,35 @@ class ratGame:
         elif self.wins[1] >= 4:
             self.gameWinner = 1
 
-    def suboptimal_simultaneous_solve(self, currentRoundMatrix, strategies):
+    def suboptimal_simultaneous_solve(self, reducedMatrix, models):
         strat_results = [0,0] # 0's are placeholders for distributions
 
         # Grab the optimal strategies if necessary for either player
-        if strategies[0] == "Optimal" or strategies[1] == "Optimal":
-            optimal_strats = self.simultaneous_solve(self, currentRoundMatrix)[1]
+        if models[0] == "Optimal" or models[1] == "Optimal":
+            optimal_strats = self.simultaneous_solve(reducedMatrix)[0][1]
         
         for i in range(2):
-            if strategies[i] == "Optimal":
+            if models[i] == "Optimal":
                 strat_results[i] = optimal_strats[i]
             else:
-                strat_results[i] = strategies[i].get_strategy(self, player = i)
+                strat_results[i] = models[i].get_strategy(self, player = i)
             # Validate the strategy
             if abs(sum(strat_results[i])-1) > 0.00001:
                 print(f"WARNING: Invalid strategy on turn {self.get_game_str()}: {strat_results[i]}")
 
-        # Calculate the value of the game given these strategies
+        # Calculate the value of the game given these models
         # MAKE SURE THIS MATH IS CORRECT
-        p2_card_vals = np.matmul(np.array(strat_results[0]), currentRoundMatrix)
+        print(reducedMatrix)
+        p2_card_vals = np.matmul(np.array(strat_results[0]), reducedMatrix)
         value = np.matmul(np.array(strat_results[1]), p2_card_vals)
 
-        return (value, [list(strat_results[0]), list(strat_results[1])], ["Non-optimal"])
+        state_info = (value, [list(strat_results[0]), list(strat_results[1])], ["Non-optimal"])
+
+        return (state_info, value)
 
 
 
-    def getValue(self, knownValues, knownSolutions, strategies = ["Optimal", "Optimal"]):
+    def getValue(self, knownValues, knownSolutions, models = ["Optimal", "Optimal"]):
         # Returns the value of the current gamestate
         # Strategy can either be "Optimal" or an object with property get_strategy that takes a gamestate (and player #)
         # and returns a list of probabilities for each of that player's possible cards.
@@ -324,41 +252,39 @@ class ratGame:
 
                     #print("Generated new value: " + str(subGameValue))
 
-        game_str = self.get_game_str()     
+        game_str = self.get_game_str()
+        reducedMatrix = currentRoundMatrix[list(self.cardsAvailiable[0])]
+        reducedMatrix = reducedMatrix[:, list(self.cardsAvailiable[1])]
 
-        if strategies[0] == "Optimal" and strategies[1] == "Optimal":
+        if models[0] == "Optimal" and models[1] == "Optimal":
             if max(self.spies) == 0:
                 # Non-spy round - solve via simultaneous move (simplex method)
-                gameResult = self.simultaneous_solve(currentRoundMatrix)
+                gameResult = self.simultaneous_solve(reducedMatrix)
             else:
                 # Spy round - sequential solve (minmax)
-                gameResult = self.sequential_sovle(currentRoundMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+                gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
         else:
             
             if max(self.spies) == 0:
                 # Non-spy round - solve via simultaneous move (simplex method)
 
-                gameResult = self.suboptimal_simultaneous_solve(currentRoundMatrix, strategies)
+                gameResult = self.suboptimal_simultaneous_solve(reducedMatrix, models)
             else:
                 # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
                 # Spy round - sequential solve (minmax)
-                gameResult = self.sequential_sovle(currentRoundMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+                gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
 
             
         knownSolutions[game_str] = gameResult[0]
         knownValues[game_str] = float(gameResult[1])
 
-        if len(self.cardsAvailiable[0]) >= 7: # Status progress report
+        if len(self.cardsAvailiable[0]) >= 7: # Status progress report on high-level turns
             #print("Finished solving gamestate " + self.get_game_str())
             print("Finished solving state" + game_str + " with value " + str(gameResult[1]))
 
         return gameResult[1]
     
-    def simultaneous_solve(self, currentRoundMatrix):
-        reducedMatrix = currentRoundMatrix[list(self.cardsAvailiable[0])]
-        reducedMatrix = reducedMatrix[:, list(self.cardsAvailiable[1])]
-
-        #print(reducedMatrix)
+    def simultaneous_solve(self, reducedMatrix):
 
         if len(self.cardsAvailiable[0]) == 1:
             value = reducedMatrix[0][0]
@@ -367,8 +293,6 @@ class ratGame:
 
         nash_subgame = nash.Game(reducedMatrix)
 
-
-        
         strategies = safe_lemke_howson(nash_subgame, len(self.cardsAvailiable[0]), 0)
         # For some reason, inital_dropped_label = 0 gives an error on rare occasion
 
@@ -380,6 +304,7 @@ class ratGame:
             # The error in question: nashpy\linalg\tableau.py:318: RuntimeWarning: invalid value encountered in 
             # true_divide return strategy / sum(strategy)
             strategies = nash_subgame.support_enumeration()
+            print(reducedMatrix)
             first_strat = next(strategies)
         
         #first_strat = aggregate_solution(nash_subgame, len(self.cardsAvailiable[0]))
@@ -390,13 +315,10 @@ class ratGame:
         
         return (state_info, value)
     
-    def sequential_sovle(self, currentRoundMatrix, first_player):
+    def sequential_sovle(self, reducedMatrix, first_player):
         # For spy turns, we will simply use minmax.
         game_size = len(self.cardsAvailiable[0])
 
-        reducedMatrix = currentRoundMatrix[list(self.cardsAvailiable[0])]
-        reducedMatrix = reducedMatrix[:, list(self.cardsAvailiable[1])]
-        #print(reducedMatrix)
         if first_player == 1:
             # If P2 is going first, we transpose and take the negative to figure out which is best.
             updatedMatrix = - np.transpose(reducedMatrix)
@@ -427,7 +349,7 @@ class ratGame:
 
         return (state_info, value)
 
-# %%
+# %% functions for command line interface
 def print_solution(statename, knownSolutions):
     print(create_solution_str(ratGame(statename),knownSolutions[statename]))
 
@@ -545,7 +467,7 @@ def default_console_start(path):
         print("Reading solutions...")
 
         
-        (knownValues, knownSolutions) = read_known_solutions(path)
+        (knownValues, knownSolutions) = helperFunctions.read_known_solutions(path)
 
         print("Done reading solutions")
     except Exception as e:
@@ -562,9 +484,9 @@ def default_console_start(path):
         knownSolutions = {}
 
         testGame.getValue(knownValues, knownSolutions)
-        write_known_solutions(knownSolutions, path)
+        helperFunctions.write_known_solutions(knownSolutions, path)
             
-    write_known_solutions(knownSolutions, "knownSolutions2.txt", write_type="new")
+    helperFunctions.write_known_solutions(knownSolutions, "knownSolutions2.txt", write_type="new")
 
     game_loop()
 # %%
@@ -573,10 +495,14 @@ path = "knownSolutions.txt"
 
 if __name__ == "__main__":
     #default_console_start(path)
-    testGame = ratGame('p1-01267-p2-01237-w-22-g-00-s-00-h-00')
+    testGame = ratGame('p1-01234567-p2-01234567-w-22-g-00-s-00-h-00')
+
+
     # This will solve the game
     knownValues = {}
     knownSolutions = {}
 
-    testGame.getValue(knownValues, knownSolutions)
+    testGame.getValue(knownValues, knownSolutions, models= ["Optimal", "Optimal"])
+                      #[models.simplexOptimal(path), models.fullRandom]) #"Optimal"
+
     print(knownSolutions)
