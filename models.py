@@ -2,6 +2,7 @@
 
 import nashpy as nash
 import numpy as np
+np.seterr(divide='ignore', invalid='ignore')
 
 import helperFunctions
 
@@ -27,34 +28,65 @@ class simplexOptimal:
         return strats[1][player]
     
 class simplexSolver:
-    def aggregate_solution(self, nash_subgame, game_size):
+    def aggregate_solution(self, reducedMatrix, game_size, player):
         # Takes all availiable strategies and averages them for a final result
-        # Ocasionally, some strategies will miss opportunities to punish sub-optimal play
-        # Therefore, this average will give better results vs humans
+        # Ocasionally, these methods yield different strategies that yield the same value
+        # However, some of these strategies will be strictly better against sub-optimal play
+        # Therefore, this selection of optimal strategy will give better results vs humans
+
+        # Rounding matrix to 8 decimals to prevent floating point decimal error issue
+        reducedMatrix = np.round(reducedMatrix,7)
+        #print(reducedMatrix)
+
+        
+
+        game_size = len(reducedMatrix)
+        nash_subgame = nash.Game(reducedMatrix)
         strategies = []
         for i in range(game_size):
             try:
                 strat = nash_subgame.lemke_howson(initial_dropped_label=i)
                 if not np.isnan(strat[0][0]):
-                    strategies.append(strat)
+                    strategies.append(strat[player])
             except Exception:
                 pass
-        try:
-            strat = next(nash_subgame.support_enumeration())
-            strategies.append(strat)
-        except Exception:
-            pass
+        
+        if len(strategies) == 0:
+            print("Unusual case - no equilibira found by Lemke Howson. Trying Support Enumeration.")
+            try:
+                strat = next(nash_subgame.support_enumeration())
+                if not np.isnan(strat[0][0]):
+                    strategies.append(strat[player])
+            except Exception:
+                pass
+        
+            
+        best_val = -1 # Impossibly low to start
+        best_strat = None
 
-        strat1 = np.zeros(shape = game_size)
-        strat2 = np.zeros(shape = game_size)
-        for strat in strategies:
-            strat1 += np.array(strat[0])/len(strategies)
-            strat2 += np.array(strat[1])/len(strategies)
+        # Creating a matrix to calculate "total value of strategy"
+        # For each card, multiply p(play that card) * sum(possible values given that card played)
+        card_total_vals = np.sum(np.array(reducedMatrix), axis=0) if player==0 else (np.sum(1-np.array(reducedMatrix), axis=1))
+        for s in strategies:
+            strat_val_sum = np.matmul(card_total_vals,np.transpose(s))
+            if strat_val_sum > best_val:
+                best_val = strat_val_sum
+                best_strat = s
+        #aggregated_optimal = np.sum(np.array(strategies), axis = 0) / len(strategies)
 
-        if abs(sum(strat1)-1) > 0.0001 or abs(sum(strat2)-1) > 0.0001:
-            print(f"INVALID STRATEGIES: \n{strat1}\n{strat2}")
+        if best_strat is None:
+            print("\nERROR in aggregate_solution: No strategies found.\n")
 
-        return (list(strat1), list(strat2))
+        """
+        strat = np.zeros(shape = game_size)
+        for s in strategies:
+            strat += np.array(s[0])/len(strategies)
+        """
+
+        if abs(sum(best_strat)-1) > 0.0001:
+            print(f"INVALID STRATEGY: \n{best_strat}")
+
+        return list(best_strat)
 
     def safe_lemke_howson(self, game, game_size, initial_dropped_label):
         if initial_dropped_label >= game_size:
@@ -79,7 +111,9 @@ class simplexSolver:
         if len(gameState.cardsAvailiable[0]) == 1:
             return [1]
 
-        nash_subgame = nash.Game(reducedMatrix)
+        
+        optimal_strat = self.aggregate_solution(reducedMatrix, gameState.game_size, player)
+        """
 
         strategies = self.safe_lemke_howson(nash_subgame, len(gameState.cardsAvailiable[0]), 0)
         # For some reason, inital_dropped_label = 0 gives an error on rare occasion
@@ -93,5 +127,18 @@ class simplexSolver:
             # true_divide return strategy / sum(strategy)
             strategies = nash_subgame.support_enumeration()
             first_strat = next(strategies)
+        """
 
-        return first_strat[player]
+        return optimal_strat
+    
+
+
+test_matrix = [[1.,0.9599359,  0.,0.,0.],
+    [0.97916667, 0.,1.,0.,1.],
+    [0.89285714, 1.,0.84583333, 0.,0.],
+    [1.,1.,1.,0.84681373, 0.],
+    [1.,1.,1.,1.,0.89583333]]
+
+
+solver = simplexSolver()
+print(solver.aggregate_solution(test_matrix,3,1))
