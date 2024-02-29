@@ -477,13 +477,14 @@ path = "knownSolutions.txt"
 
 if __name__ == "__main__":
     #default_console_start(path)
-    testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
+    testGame = ratGame('p1-01234567-p2-01234567-w-11-g-00-s-00-h-00')
     # This will solve the game
     knownValues = {}
     knownSolutions = {}
 
     #[models.fullRandom(), models.fullRandom()]
     testGame.getValue(knownValues, knownSolutions, models= [models.simplexSolver(), models.fullRandom()])
+    print(knownSolutions)
     write_known_solutions(knownSolutions, "knownSolutionsNew")
         
     write_known_solutions(knownSolutions, "playableSolutionsNew.txt", write_type="new")
