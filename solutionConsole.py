@@ -12,20 +12,20 @@ import models
 import helperFunctions
 
 # %%
-def aggregate_solution(nas_subgame, game_size):
+def aggregate_solution(nash_subgame, game_size):
     # Takes all availiable strategies and averages them for a final result
     # Ocasionally, some strategies will miss opportunities to punish sub-optimal play
     # Therefore, this average will give better results vs humans
     strategies = []
     for i in range(game_size):
         try:
-            strat = nas_subgame.lemke_howson(initial_dropped_label=i)
+            strat = nash_subgame.lemke_howson(initial_dropped_label=i)
             if not np.isnan(strat[0][0]):
                 strategies.append(strat)
         except Exception:
             pass
     try:
-        strat = next(nas_subgame.support_enumeration())
+        strat = next(nash_subgame.support_enumeration())
         strategies.append(strat)
     except Exception:
         pass
@@ -179,21 +179,14 @@ class ratGame:
         strat_results = [0,0] # 0's are placeholders for distributions
 
         # Grab the optimal strategies if necessary for either player
-        if models[0] == "Optimal" or models[1] == "Optimal":
-            optimal_strats = self.simultaneous_solve(reducedMatrix)[0][1]
         
         for i in range(2):
-            if models[i] == "Optimal":
-                strat_results[i] = optimal_strats[i]
-            else:
-                strat_results[i] = models[i].get_strategy(self, player = i)
+            strat_results[i] = models[i].get_strategy(self, reducedMatrix = reducedMatrix, player = i)
             # Validate the strategy
             if abs(sum(strat_results[i])-1) > 0.00001:
                 print(f"WARNING: Invalid strategy on turn {self.get_game_str()}: {strat_results[i]}")
 
         # Calculate the value of the game given these models
-        # MAKE SURE THIS MATH IS CORRECT
-        print(reducedMatrix)
         p2_card_vals = np.matmul(np.array(strat_results[0]), reducedMatrix)
         value = np.matmul(np.array(strat_results[1]), p2_card_vals)
 
@@ -201,9 +194,7 @@ class ratGame:
 
         return (state_info, value)
 
-
-
-    def getValue(self, knownValues, knownSolutions, models = ["Optimal", "Optimal"]):
+    def getValue(self, knownValues, knownSolutions, models):
         # Returns the value of the current gamestate
         # Strategy can either be "Optimal" or an object with property get_strategy that takes a gamestate (and player #)
         # and returns a list of probabilities for each of that player's possible cards.
@@ -241,7 +232,7 @@ class ratGame:
                     # Otherwise, we have to solve the sub-game before solving this game
                     #print("Playing [" + str(p1_next) + ", " + str(p2_next) + "], Generating value for sub-game: " + subGameStr)
 
-                    subGameValue = subGame.getValue(knownValues, knownSolutions)
+                    subGameValue = subGame.getValue(knownValues, knownSolutions, models)
                     
                     if subGameValue < 0 or subGameValue > 1:
                         print(f"Invalid value in position {self.get_game_str()}: {subGameValue}")
@@ -256,23 +247,14 @@ class ratGame:
         reducedMatrix = currentRoundMatrix[list(self.cardsAvailiable[0])]
         reducedMatrix = reducedMatrix[:, list(self.cardsAvailiable[1])]
 
-        if models[0] == "Optimal" and models[1] == "Optimal":
-            if max(self.spies) == 0:
-                # Non-spy round - solve via simultaneous move (simplex method)
-                gameResult = self.simultaneous_solve(reducedMatrix)
-            else:
-                # Spy round - sequential solve (minmax)
-                gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
-        else:
-            
-            if max(self.spies) == 0:
-                # Non-spy round - solve via simultaneous move (simplex method)
+        if max(self.spies) == 0:
+            # Non-spy round - solve via simultaneous move (simplex method)
 
-                gameResult = self.suboptimal_simultaneous_solve(reducedMatrix, models)
-            else:
-                # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
-                # Spy round - sequential solve (minmax)
-                gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+            gameResult = self.suboptimal_simultaneous_solve(reducedMatrix, models)
+        else:
+            # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
+            # Spy round - sequential solve (minmax)
+            gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
 
             
         knownSolutions[game_str] = gameResult[0]
@@ -483,10 +465,10 @@ def default_console_start(path):
         knownValues = {}
         knownSolutions = {}
 
-        testGame.getValue(knownValues, knownSolutions)
-        helperFunctions.write_known_solutions(knownSolutions, path)
+        testGame.getValue(knownValues, knownSolutions, models= [models.simplexSolver, models.simplexSolver])
+        write_known_solutions(knownSolutions, path)
             
-    helperFunctions.write_known_solutions(knownSolutions, "knownSolutions2.txt", write_type="new")
+    write_known_solutions(knownSolutions, "knownSolutions2.txt", write_type="new")
 
     game_loop()
 # %%
@@ -495,14 +477,13 @@ path = "knownSolutions.txt"
 
 if __name__ == "__main__":
     #default_console_start(path)
-    testGame = ratGame('p1-01234567-p2-01234567-w-22-g-00-s-00-h-00')
-
-
+    testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
     # This will solve the game
     knownValues = {}
     knownSolutions = {}
 
-    testGame.getValue(knownValues, knownSolutions, models= ["Optimal", "Optimal"])
-                      #[models.simplexOptimal(path), models.fullRandom]) #"Optimal"
-
-    print(knownSolutions)
+    #[models.fullRandom(), models.fullRandom()]
+    testGame.getValue(knownValues, knownSolutions, models= [models.simplexSolver(), models.fullRandom()])
+    write_known_solutions(knownSolutions, "knownSolutionsNew")
+        
+    write_known_solutions(knownSolutions, "playableSolutionsNew.txt", write_type="new")
