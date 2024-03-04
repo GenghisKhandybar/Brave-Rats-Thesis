@@ -34,8 +34,8 @@ class simplexSolver:
         # However, some of these strategies will be strictly better against sub-optimal play
         # Therefore, this selection of optimal strategy will give better results vs humans
 
-        # Rounding matrix to 8 decimals to prevent floating point decimal error issue
-        reducedMatrix = np.round(reducedMatrix,7)
+        # Rounding matrix to 6 decimals to prevent floating point decimal error issue
+        reducedMatrix = np.round(reducedMatrix,5)
         #print(reducedMatrix)
 
         
@@ -43,22 +43,41 @@ class simplexSolver:
         game_size = len(reducedMatrix)
         nash_subgame = nash.Game(reducedMatrix)
         strategies = []
-        for i in range(game_size):
-            try:
-                strat = nash_subgame.lemke_howson(initial_dropped_label=i)
-                if not np.isnan(strat[0][0]):
-                    strategies.append(strat[player])
-            except Exception:
-                pass
-        
+
+        # First, support enumeration
         if len(strategies) == 0:
-            print("Unusual case - no equilibira found by Lemke Howson. Trying Support Enumeration.")
+            #print("Unusual case - no equilibira found by Vertex Enumeration or Lemke Howson. Trying Support Enumeration.")
             try:
                 strat = next(nash_subgame.support_enumeration())
                 if not np.isnan(strat[0][0]):
                     strategies.append(strat[player])
             except Exception:
                 pass
+
+        # First, vertex enumeration
+        if len(strategies) == 0:
+            print("Support enumeration failed")
+            print(reducedMatrix)
+            equilibria = nash_subgame.vertex_enumeration()
+            try:
+                for eq in equilibria:
+                    strategies.append(eq[player])
+            except Exception:
+                pass   
+
+        # Next, lemke howson if that didn't work
+        if len(strategies) == 0:
+            print("Unusual case - no equilibira found by vertex enumeration or support enumeration. Trying lemke howson.")
+            print(reducedMatrix)
+            for i in range(game_size):
+                try:
+                    strat = nash_subgame.lemke_howson(initial_dropped_label=i)
+                    if not np.isnan(strat[0][0]):
+                        strategies.append(strat[player])
+                except Exception:
+                    pass        
+        
+
         
             
         best_val = -1 # Impossibly low to start
