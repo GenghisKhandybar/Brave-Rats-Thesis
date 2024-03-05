@@ -5,69 +5,24 @@
 #Packages
 import nashpy as nash
 import numpy as np
-import json
 
-# other models
+# Timing
+from time import perf_counter as pc
+
+
+# Local Files
 import models
 import helperFunctions
 
 # %%
-def aggregate_solution(nash_subgame, game_size):
-    # Takes all availiable strategies and averages them for a final result
-    # Ocasionally, some strategies will miss opportunities to punish sub-optimal play
-    # Therefore, this average will give better results vs humans
-    strategies = []
-    for i in range(game_size):
-        try:
-            strat = nash_subgame.lemke_howson(initial_dropped_label=i)
-            if not np.isnan(strat[0][0]):
-                strategies.append(strat)
-        except Exception:
-            pass
-    try:
-        strat = next(nash_subgame.support_enumeration())
-        strategies.append(strat)
-    except Exception:
-        pass
+# Global reporting variables
+overall_startTime = pc()
+startTime = pc()
+saveStartTime = pc()
+computed_states = 0
 
-    strat1 = np.zeros(shape = game_size)
-    strat2 = np.zeros(shape = game_size)
-    for strat in strategies:
-        strat1 += np.array(strat[0])/len(strategies)
-        strat2 += np.array(strat[1])/len(strategies)
+# %%
 
-    if abs(sum(strat1)-1) > 0.0001 or abs(sum(strat2)-1) > 0.0001:
-        print(f"INVALID STRATEGIES: \n{strat1}\n{strat2}")
-
-    return (list(strat1), list(strat2))
-
-def safe_lemke_howson(game, game_size, initial_dropped_label):
-    if initial_dropped_label >= game_size:
-        strategies = game.support_enumeration()
-        first_strat = next(strategies)
-        return first_strat
-    try:
-        strat_gen = game.lemke_howson(initial_dropped_label=initial_dropped_label)
-        first_strat = list(strat_gen)
-        if min(min(first_strat[0]), min(first_strat[1])) < 0: # Somehow this happened once, a sub-zero probability
-            return(safe_lemke_howson(game, game_size, initial_dropped_label+1))
-
-        return(strat_gen)
-    except ValueError:
-        print("Error - trying again with higher initial drop label")
-
-        return(safe_lemke_howson(game, game_size, initial_dropped_label+1))
-
-def write_known_solutions(knownSolutions, path, write_type = "original"):
-    with open(path, 'w') as f:
-        for key, value in knownSolutions.items():
-            if write_type == "original":
-                f.write('%s:%s\n' % (key, helperFunctions.get_solution_save_string(value)))
-            else:
-                game = ratGame(game_str = key)
-                if game.gameWinner is None and len(game.wins) == 2: #for 2-digit wins issue
-                    #print(key)
-                    f.write('%s:%s\n' % (key, helperFunctions.get_solution_save_string_2(game, value)))
 
 # %% ratGame class
 class ratGame:
@@ -175,7 +130,7 @@ class ratGame:
         elif self.wins[1] >= 4:
             self.gameWinner = 1
 
-    def suboptimal_simultaneous_solve(self, reducedMatrix, models):
+    def get_strats_and_value(self, reducedMatrix, models):
         strat_results = [0,0] # 0's are placeholders for distributions
 
         # Grab the optimal strategies if necessary for either player
@@ -190,21 +145,21 @@ class ratGame:
         p2_card_vals = np.matmul(np.array(strat_results[0]), reducedMatrix)
         value = np.matmul(np.array(strat_results[1]), p2_card_vals)
 
-        state_info = (value, [list(strat_results[0]), list(strat_results[1])], ["Non-optimal"])
+        state_info = (value, [list(strat_results[0]), list(strat_results[1])], reducedMatrix)
 
         return (state_info, value)
 
-    def getValue(self, knownValues, knownSolutions, models):
+    def getValue(self, knownSolutions, models, savePath = "temp_solution.txt", save_interval = 600, report_interval = 60):
         # Returns the value of the current gamestate
         # Strategy can either be "Optimal" or an object with property get_strategy that takes a gamestate (and player #)
         # and returns a list of probabilities for each of that player's possible cards.
 
         #First,  check if the game is over (win/loss or tie)
         if self.gameWinner is not None:
-            knownSolutions[self.get_game_str()] = (1 - self.gameWinner, [[0],[0]], "")
+            knownSolutions[self.get_game_str()] = (1 - self.gameWinner, "Endstate", "")
             return 1 - self.gameWinner
         elif len(self.cardsAvailiable[0]) == 0:
-            knownSolutions[self.get_game_str()] = (0.5, [[0],[0]], "")
+            knownSolutions[self.get_game_str()] = (0.5, "Endstate", "")
             return 0.5
 
         # If the game is not over, we must make a matrix of all sub-games, and calculate value from it.
@@ -224,15 +179,15 @@ class ratGame:
 
                 subGameStr = subGame.get_game_str()
                 
-                if subGameStr in knownValues:
+                if subGameStr in knownSolutions:
                     # We may already know this state's value
-                    currentRoundMatrix[p1_next][p2_next] = knownValues[subGameStr]
+                    currentRoundMatrix[p1_next][p2_next] = knownSolutions[subGameStr][0]
                     
                 else: 
                     # Otherwise, we have to solve the sub-game before solving this game
                     #print("Playing [" + str(p1_next) + ", " + str(p2_next) + "], Generating value for sub-game: " + subGameStr)
 
-                    subGameValue = subGame.getValue(knownValues, knownSolutions, models)
+                    subGameValue = subGame.getValue(knownSolutions, models, savePath=savePath, save_interval=save_interval, report_interval=report_interval)
                     
                     if subGameValue < 0 or subGameValue > 1:
                         print(f"Invalid value in position {self.get_game_str()}: {subGameValue}")
@@ -250,7 +205,7 @@ class ratGame:
         if max(self.spies) == 0:
             # Non-spy round - solve via simultaneous move (simplex method)
 
-            gameResult = self.suboptimal_simultaneous_solve(reducedMatrix, models)
+            gameResult = self.get_strats_and_value(reducedMatrix, models)
         else:
             # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
             # Spy round - sequential solve (minmax)
@@ -258,44 +213,26 @@ class ratGame:
 
             
         knownSolutions[game_str] = gameResult[0]
-        knownValues[game_str] = float(gameResult[1])
 
         if len(self.cardsAvailiable[0]) >= 7: # Status progress report on high-level turns
             #print("Finished solving gamestate " + self.get_game_str())
             print("Finished solving state" + game_str + " with value " + str(gameResult[1]))
 
+        # Time-based progress reports and saving.
+        global startTime, saveStartTime, overall_startTime, computed_states
+        t = pc()
+        if t - saveStartTime > save_interval:
+            print(f"Auto-saving at {savePath}")
+            helperFunctions.write_known_solutions(knownSolutions, savePath)
+            saveStartTime = t
+            
+        if t - startTime > report_interval:
+            states = len(knownSolutions)
+            print(f"Computed {states - computed_states} states in {round(t-startTime)} seconds. Total: {states} states so far in {round(t-overall_startTime)} seconds.")
+            startTime = t
+            computed_states = states
+
         return gameResult[1]
-    
-    def simultaneous_solve(self, reducedMatrix):
-
-        if len(self.cardsAvailiable[0]) == 1:
-            value = reducedMatrix[0][0]
-            state_info = (value, [[1], [1]], reducedMatrix)
-            return (state_info, value)
-
-        nash_subgame = nash.Game(reducedMatrix)
-
-        strategies = safe_lemke_howson(nash_subgame, len(self.cardsAvailiable[0]), 0)
-        # For some reason, inital_dropped_label = 0 gives an error on rare occasion
-
-        #first_strat = next(strategies)
-        # There can be multiple viable strategies but we just take the first
-        first_strat = strategies
-
-        if np.isnan(first_strat[0][0]): # Sometimes lemke howson method errors, so we use support enumeration
-            # The error in question: nashpy\linalg\tableau.py:318: RuntimeWarning: invalid value encountered in 
-            # true_divide return strategy / sum(strategy)
-            strategies = nash_subgame.support_enumeration()
-            print(reducedMatrix)
-            first_strat = next(strategies)
-        
-        #first_strat = aggregate_solution(nash_subgame, len(self.cardsAvailiable[0]))
-        
-        value = nash_subgame[list(first_strat[0]), list(first_strat[1])][0]
-
-        state_info = (value, [list(first_strat[0]), list(first_strat[1])], reducedMatrix)
-        
-        return (state_info, value)
     
     def sequential_sovle(self, reducedMatrix, first_player):
         # For spy turns, we will simply use minmax.
@@ -449,7 +386,7 @@ def default_console_start(path):
         print("Reading solutions...")
 
         
-        (knownValues, knownSolutions) = helperFunctions.read_known_solutions(path)
+        knownSolutions = helperFunctions.read_known_solutions(path)
 
         print("Done reading solutions")
     except Exception as e:
@@ -462,13 +399,10 @@ def default_console_start(path):
 
         testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
         # This will solve the game
-        knownValues = {}
         knownSolutions = {}
 
-        testGame.getValue(knownValues, knownSolutions, models= [models.simplexSolver, models.simplexSolver])
-        write_known_solutions(knownSolutions, path)
-            
-    write_known_solutions(knownSolutions, "knownSolutions2.txt", write_type="new")
+        testGame.getValue(knownSolutions, models= [models.simplexSolver, models.simplexSolver])
+        helperFunctions.write_known_solutions(knownSolutions, path)
 
     game_loop()
 # %%
@@ -479,12 +413,11 @@ if __name__ == "__main__":
     #default_console_start(path)
     testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
     # This will solve the game
-    knownValues = {}
-    knownSolutions = {}
+    knownSolutions = {}#helperFunctions.read_known_solutions("temp_solution.txt") #{}
 
     #[models.fullRandom(), models.fullRandom()]
-    testGame.getValue(knownValues, knownSolutions, models= [models.simplexSolver(), models.simplexSolver()])
+    # [models.simplexSolver(), models.simplexSolver()]
+    testGame.getValue(knownSolutions, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600)
     print(knownSolutions)
-    write_known_solutions(knownSolutions, "knownSolutionsNew")
-        
-    write_known_solutions(knownSolutions, "playableSolutionsNew.txt", write_type="new")
+
+    helperFunctions.write_known_solutions(knownSolutions, "playableSolutionsNew.txt")

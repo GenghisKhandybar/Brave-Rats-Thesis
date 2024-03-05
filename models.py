@@ -11,21 +11,25 @@ class fullRandom:
         card_count = len(gameState.cardsAvailiable[0])
         return [1/card_count]*card_count
     
-class simplexOptimal:
+class savedSimplexOptimal:
     # This plays by the Simplex optimal solution. It does not solve the game.
     def __init__(self, path):
         try:
             # Read solutions from file (5-10 seconds)
             print("Reading solutions...")
-            (knownValues, knownSolutions) = helperFunctions.read_known_solutions(path)
+            knownSolutions = helperFunctions.read_known_solutions(path)
             print("Done reading solutions")
         except Exception as e:
-            print("ERROR - NO SOLUTION FILE FOUND")
+            print(f"ERROR - NO SOLUTION FILE FOUND - {str(e)}")
         self.knownSolutions = knownSolutions
 
     def get_strategy(self, gameState, reducedMatrix, player):
-        strats = self.knownSolutions[gameState.get_game_str()]
-        return strats[1][player]
+        # Get the strategy for the appropriate player
+        strat = self.knownSolutions[gameState.get_game_str()][1][player]
+
+        # Next, subset the list of probabilities to only those for available cards
+        strat = strat[list(gameState.cardsAvailiable[player])] 
+        return strat
     
 class simplexSolver:
     def aggregate_solution(self, reducedMatrix, game_size, player):
@@ -36,9 +40,6 @@ class simplexSolver:
 
         # Rounding matrix to 6 decimals to prevent floating point decimal error issue
         reducedMatrix = np.round(reducedMatrix,5)
-        #print(reducedMatrix)
-
-        
 
         game_size = len(reducedMatrix)
         nash_subgame = nash.Game(reducedMatrix)
@@ -56,8 +57,8 @@ class simplexSolver:
 
         # First, vertex enumeration
         if len(strategies) == 0:
-            print("Support enumeration failed")
-            print(reducedMatrix)
+            #print("Support enumeration failed")
+            #print(reducedMatrix)
             equilibria = nash_subgame.vertex_enumeration()
             try:
                 for eq in equilibria:
@@ -77,9 +78,6 @@ class simplexSolver:
                 except Exception:
                     pass        
         
-
-        
-            
         best_val = -1 # Impossibly low to start
         best_strat = None
 
@@ -107,33 +105,13 @@ class simplexSolver:
 
         return list(best_strat)
 
-    def safe_lemke_howson(self, game, game_size, initial_dropped_label):
-        if initial_dropped_label >= game_size:
-            strategies = game.support_enumeration()
-            first_strat = next(strategies)
-            return first_strat
-        try:
-            strat_gen = game.lemke_howson(initial_dropped_label=initial_dropped_label)
-            first_strat = list(strat_gen)
-            if min(min(first_strat[0]), min(first_strat[1])) < 0 or np.isnan(first_strat[0][0]): # Somehow this happened once, a sub-zero probability
-                return(self.safe_lemke_howson(game, game_size, initial_dropped_label+1))
-
-            return(strat_gen)
-        except ValueError:
-            print("Error - trying again with higher initial drop label")
-
-            return(self.safe_lemke_howson(game, game_size, initial_dropped_label+1))
-
-
     def get_strategy(self, gameState, reducedMatrix, player):
 
         if len(gameState.cardsAvailiable[0]) == 1:
             return [1]
 
-        
         optimal_strat = self.aggregate_solution(reducedMatrix, gameState.game_size, player)
         """
-
         strategies = self.safe_lemke_howson(nash_subgame, len(gameState.cardsAvailiable[0]), 0)
         # For some reason, inital_dropped_label = 0 gives an error on rare occasion
 
