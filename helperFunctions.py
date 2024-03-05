@@ -22,17 +22,18 @@ def get_solution_save_string(solution):
         ans += ",".join(map(str,solution[2][line_i]))
     return ans
 
-def get_solution_save_string_2(game, solution):
+def get_solution_save_string_2(cardsAvailiable, solution):
     # This version has probabilities for all 8 cards 
     
     ans = ""
     ans += "v|" + str(solution[0])
+
     long_solutions = []
     for p in range(2):
         s = ""
         sol_index = 0
         for i in range(8):
-            if i in game.cardsAvailiable[p]:
+            if i in cardsAvailiable[p]:
                 s += str(solution[1][p][sol_index])
                 sol_index += 1
             if i != 7:
@@ -50,26 +51,17 @@ def get_solution_save_string_2(game, solution):
 def get_solution_from_string(solution_string):
     sections = solution_string.split("|")
     value = float(sections[1])
-    s1 = np.array(sections[3].split(","), dtype = float)
-    s2 = np.array(sections[5].split(","), dtype = float)
+    s1 = np.array([float(x) if x != "" else None for x in sections[3].split(",")]) # First strategy
+    s2 = np.array([float(x) if x != "" else None for x in sections[5].split(",")]) # Second strategy
     m_strings = sections[7].split(" $ ")
     m = []
     for i in range(2, len(m_strings), 2):
         m.append(m_strings[i].split(","))
     return (value, [s1,s2], np.array(m, dtype = float))
 
-
-
-"""
-def write_known_values(knownValues, path):
-    with open(path, 'w') as convert_file:
-        convert_file.write(json.dumps(knownValues))
-"""
-
 def read_known_solutions(path):
     # Returns both known solutions and known values from knownSolutions.txt
     knownSolutions = {}
-    knownValues = {}
 
     with open(path, 'r') as f:
 
@@ -78,7 +70,27 @@ def read_known_solutions(path):
             key = key_val[0]
 
             val = get_solution_from_string(key_val[1])
-            game_val = val[0] # Just game value (win probability)
             knownSolutions[key] = val
-            knownValues[key] = game_val 
-    return(knownValues, knownSolutions)
+
+    return knownSolutions
+
+def write_known_solutions(knownSolutions, path):
+    with open(path, 'w') as f:
+        for key, value in knownSolutions.items():
+            if value[1] != "Endstate":
+                game_str = key.split("-")
+                cardsAvailiable =[set(map(int, list(game_str[1]))), set(map(int, list(game_str[3])))]
+                f.write('%s:%s\n' % (key, get_solution_save_string_2(cardsAvailiable, value)))
+
+"""
+def write_known_solutions(knownSolutions, path, write_type = "original"):
+    with open(path, 'w') as f:
+        for key, value in knownSolutions.items():
+            if write_type == "original":
+                f.write('%s:%s\n' % (key, helperFunctions.get_solution_save_string(value)))
+            else:
+                game = ratGame(game_str = key)
+                if game.gameWinner is None and len(game.wins) == 2: #for 2-digit wins issue
+                    #print(key)
+                    f.write('%s:%s\n' % (key, helperFunctions.get_solution_save_string_2(game, value)))
+"""
