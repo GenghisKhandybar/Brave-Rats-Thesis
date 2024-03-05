@@ -6,6 +6,9 @@ editor: visual
 
 # Setup
 
+allTurns = optimal gameplay data
+braverats = human data
+
 ```{r}
 library(tidyverse)
 library(tidyclust)
@@ -74,17 +77,17 @@ p1_optimal_turns <- allTurns %>%
   mutate_all(~replace(., is.na(.), 0))
 ```
 
-## Human data
+### Human data
 
 ```{r}
 #braverats <- read.csv("BraveRatsData.csv")
 source("readHumanData.r")
 
-head(braverats_adjusted, 30)
+head(braverats, 30)
 ```
 
 ```{r}
-joined_human_ai <- braverats_adjusted %>% left_join(allTurns, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
+joined_human_ai <- braverats %>% left_join(allTurns, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
                                                 "p1_wins", "p2_wins", "p1_holds", "p2_holds",
                                                 "p1_spy", "p2_spy", "p1_general", "p2_general"))
 ```
@@ -205,7 +208,7 @@ cluster_info %>%
 
 ```{r, waring=FALSE}
 # Joining human data with clusters
-human_clusters <- braverats_adjusted %>% left_join(cluster_info, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
+human_clusters <- braverats %>% left_join(cluster_info, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
                                                 "p1_wins", "p2_wins", "p1_holds", "p2_holds",
                                                 "p1_spy", "p2_spy", "p1_general", "p2_general"))
 
@@ -395,7 +398,9 @@ tree_fitted
 
 rpart.plot(tree_fitted$fit)
 ```
+
 For princess (1)
+
 ```{r}
 card_of_interest = 1 # Doing each card's tree 1 at a time
 
@@ -457,3 +462,83 @@ rpart.plot(tree_fitted$fit)
   
 ```
 
+# Human conformity to optimal
+
+## Spy turns correct
+
+```{r}
+played_vs_optimal <- joined_human_ai %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
+  mutate(this_card = substring(card_untrimmed, 5,6),
+         this_card_played = if_else(P1==this_card, 1, 0)) %>% 
+  select(Game, turn, p1_name, this_card, this_card_played, optimal_prob, gamestate_str)
+
+played_vs_optimal %>% head()
+```
+
+
+
+
+Absolute mistakes (optimal probability 0)
+
+```{r}
+played_vs_optimal %>% 
+  filter(optimal_prob == 0, this_card_played == 1)
+```
+
+
+```{r}
+played_vs_optimal %>% 
+  ggplot(aes(x = optimal_prob, y = this_card_played)) +
+  geom_point(alpha = 0.05)
+```
+
+Overall proportions played by bucket
+
+```{r}
+prob_buckets <- played_vs_optimal %>% 
+  mutate(prob_bucket = if_else(optimal_prob == 0 | optimal_prob == 1, optimal_prob, round(optimal_prob*9)/9)) %>% 
+  group_by(prob_bucket) %>% 
+  summarise(n_played = sum(this_card_played),
+            n_opportunities = n(),
+            prop_played = mean(this_card_played),
+            avg_prop_in_bucket = mean(optimal_prob)) %>% 
+  mutate(bias_proportion = prop_played - avg_prop_in_bucket)
+
+prob_buckets
+
+prob_buckets%>% 
+  ggplot(aes(x = prob_bucket, y = prop_played)) +
+  geom_bar(stat = "identity")
+  
+```
+
+Separated by card
+
+```{r}
+prob_buckets_by_card <- played_vs_optimal %>% 
+  mutate(prob_bucket = if_else(optimal_prob == 0 | optimal_prob == 1, optimal_prob, round(optimal_prob*9)/9)) %>% 
+  group_by(prob_bucket, this_card) %>% 
+  summarise(n_played = sum(this_card_played),
+            n_opportunities = n(),
+            prop_played = mean(this_card_played),
+            avg_prop_in_bucket = mean(optimal_prob)) 
+
+prob_buckets_by_card %>% 
+  arrange(this_card)
+
+prob_buckets_by_card %>% 
+  ggplot(aes(x = prob_bucket, y = prop_played)) +
+  geom_bar(stat = "identity") +
+  facet_grid(rows = ~this_card)
+  
+```
+
+# Error checking
+
+```{r}
+# Errors to review pictures from
+
+played_vs_optimal %>% 
+  filter(is.na(optimal_prob), this_card_played == 1)
+```
