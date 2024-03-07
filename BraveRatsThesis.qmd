@@ -1,6 +1,8 @@
 ---
 title: "BraveRatsThesis"
-format: html
+format:
+  html:
+    toc: true
 editor: visual
 ---
 
@@ -136,10 +138,6 @@ card_optimals %>%
 ```
 
 ```{r}
-allTurns
-```
-
-```{r}
 card_optimals %>% 
   select(card,turn,optimal_prob) %>% 
   filter(!is.na(optimal_prob)) %>% 
@@ -247,6 +245,8 @@ human_clusters %>%
 
 # Logistic regression
 
+(This task may be better to do in Python actually? Looking into GLM to do the transformation.)
+
 ```{r}
 df_predictors <- allTurns %>% 
   filter(p1_spy==0, p2_spy==0) %>% 
@@ -261,38 +261,36 @@ df_predictors <- allTurns %>%
          p1_holds,p2_holds) %>% 
   mutate_all(~replace(., is.na(.), 0))
 
-lin_reg_spec <- logistic_reg() %>%
+#lin_reg_spec <- logistic_reg() %>%
   #set_mode("regression") %>%
-  set_engine("lm")
+#  set_engine("lm")
 
-ins_lm_fit <- lin_reg_spec %>%
-  fit(p1_o7 ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs
-          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
-          p1_wins+
-         p2_wins+
-         p1_general+p2_general+
-         #p1_spy+p2_spy+
-         p1_holds+p2_holds, data = df_predictors) 
-
-ins_lm_fit$fit$coefficients
+#ins_lm_fit <- lin_reg_spec %>%
+#  fit(p1_o7 ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs
+#          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+#          p1_wins+
+#         p2_wins+
+#         p1_general+p2_general+
+#         #p1_spy+p2_spy+
+#         p1_holds+p2_holds, data = df_predictors) 
+#
+#ins_lm_fit$fit$coefficients
 ```
 
 # Spy turns
 
-```{r}
-# Given that card X is in hand and you've been spied, how often is card X optimal to play? 
-# Split by turn of game
+Given that card X is in hand and you've been spied, how often is card X optimal to play? 
 
+This table is split by turn of game. Contrary to prior belief, card 0 is not the overwhelming preferrence even when it's an option (<50% until turn 5).
+
+```{r}
 allTurns %>% 
   filter(p2_spy==1) %>% 
   group_by(turn) %>% 
   summarize(across(c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), ~mean(.x, na.rm=TRUE)))
 ```
 
-```{r}
-allTurns %>% 
-  filter(p2_spy==TRUE, turn==2)
-```
+A manual survey of what cards are optimal during different turns.
 
 ```{r}
 spy_optimal_cards <- allTurns %>% 
@@ -310,7 +308,8 @@ spy_optimal_cards <- allTurns %>%
 
 spy_optimal_cards %>% 
   filter(turn<=3) %>% 
-  select(p1_cards, p2_cards,wins, generals, spies, holds, p1_card, p2_card)
+  select(p1_cards, p2_cards,wins, generals, holds, p1_card, p2_card) %>% 
+  sample_n(10)
 ```
 
 ### Decision tree for spy turns
@@ -347,7 +346,9 @@ tree_fitted
 rpart.plot(tree_fitted$fit)
 ```
 
-## Analysis of viability
+# Analysis of viability
+
+In this section I use decision trees to see how easy it is to tell whether a card is "viable" in a certain situation or not. A card is "viable" if the optimal probability to play it is above 0.
 
 ```{r}
 # This dataset looks card-by-card whether each card is viable in a particular gamestate.
@@ -365,15 +366,17 @@ card_viability <- allTurns %>%
   mutate(p2_card=as.factor(substring(p2_card,5,6)),
          p2_card_viable = ifelse(p2_optimal_prob>0,"viable","not viable"))
 
-card_viability %>% sample_n(10)
+# card_viability %>% sample_n(10)
 ```
+
+We'll make a tree for each card (I'll just do a few for now to illustrate).
 
 For card 0 (musician)
 
 ```{r}
 card_of_interest = 0 # Doing each card's tree 1 at a time
 
-tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+tree_mod <- decision_tree(mode = "classification", tree_depth = 3, cost_complexity = double(1)) %>%
   set_engine("rpart") %>%
   set_mode("classification")
 
@@ -464,39 +467,98 @@ rpart.plot(tree_fitted$fit)
 
 # Human conformity to optimal
 
-## Spy turns correct
+In this section, we're looking at every card a player had the option to play, the optimal probability to play it, and whether they played it. 
 
 ```{r}
 played_vs_optimal <- joined_human_ai %>% 
   pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
   mutate(this_card = substring(card_untrimmed, 5,6),
          this_card_played = if_else(P1==this_card, 1, 0)) %>% 
-  select(Game, turn, p1_name, this_card, this_card_played, optimal_prob, gamestate_str)
+  select(Game, turn, p1_name, this_card, this_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy) %>% 
+  filter(!is.na(optimal_prob)) # Removing invalid cards
 
-played_vs_optimal %>% head()
+played_vs_optimal %>% sample_n(8)
 ```
 
 
+## Absolute mistakes
 
+"Absolute mistake" = playing a card with optimal probability of 0. These plays are against theory, but may still be beneficial if you have a confident prediction about your opponent's choice. 
 
-Absolute mistakes (optimal probability 0)
+Which cards are most often played when they shouldn't have?
+
+Counts of all absolute mistakes made by card
 
 ```{r}
 played_vs_optimal %>% 
-  filter(optimal_prob == 0, this_card_played == 1)
+  filter(p1_spy == FALSE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
+  group_by(this_card) %>% #, turn
+  summarise(n_mistakes = n())
 ```
 
+
+Turn-by-turn view: Column = card, row = turn of game. The most common "absolute mistakes" are playing the 6 card on turn 1, the 0 card on turn 3, and the 1 card on turn 5.
 
 ```{r}
 played_vs_optimal %>% 
-  ggplot(aes(x = optimal_prob, y = this_card_played)) +
-  geom_point(alpha = 0.05)
+  filter(p1_spy == FALSE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
+  group_by(this_card, turn) %>% #
+  summarise(n_mistakes = n()) %>% 
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
 ```
 
-Overall proportions played by bucket
+
+### Error rates by player 
+
+#### Non-spy turns
+
+```{r}
+
+played_vs_optimal %>% 
+  filter(this_card_played == 1, !is.na(optimal_prob)) %>% 
+  filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
+  mutate(absolute_mistake = if_else(this_card_played == 1 & optimal_prob == 0, 1, 0)) %>% 
+  group_by(p1_name) %>% 
+  summarize(total_mistakes = sum(absolute_mistake),
+            total_plays = n(),
+            mistake_ratio = mean(absolute_mistake)) %>% 
+  arrange(-total_plays)
+```
+
+#### Spy turns
+
+Spy turn errors 
+p1_spy = p1 used spy, so p2 chooses second
+p2_spy = p2 used spy, so p2 chooses first
+
+```{r}
+
+# Pivot to a longer form with player_spied describing which player was spied
+played_vs_optimal %>% 
+  filter(this_card_played == 1, !is.na(optimal_prob)) %>% 
+  filter(p1_spy == TRUE | p2_spy == TRUE) %>% 
+  pivot_longer(c(p1_spy, p2_spy), names_to = "player_spied") %>% 
+  filter(value == TRUE) %>% select(-value) %>%
+  mutate(absolute_mistake = if_else(this_card_played == 1 & optimal_prob == 0, 1, 0)) %>% 
+  group_by(p1_name, player_spied) %>% 
+  summarize(total_mistakes = sum(absolute_mistake),
+            total_plays = n(),
+            mistake_ratio = mean(absolute_mistake)) %>% 
+  arrange(-total_plays, player_spied) %>% head()
+  
+```
+
+## Non-absolute errors
+
+#### Overall proportions played by bucket.
+
+Here, we put a player's options into "buckets" based on how often they should optimally play it.
+
+It's less difficult than anticipated to detect these differences, with players playing cards in the "0%" bucket ~10% of the time there's an opportunity to do so. They only play cards in the "100%" bucket 57% of the time. I've included the "bias_proportion" variable as the difference between the proportion played and center of the bucket. The lowest 2 buckets are over-played an the rest are under-played (more severely as the probability increases).
 
 ```{r}
 prob_buckets <- played_vs_optimal %>% 
+  filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
   mutate(prob_bucket = if_else(optimal_prob == 0 | optimal_prob == 1, optimal_prob, round(optimal_prob*9)/9)) %>% 
   group_by(prob_bucket) %>% 
   summarise(n_played = sum(this_card_played),
@@ -510,7 +572,6 @@ prob_buckets
 prob_buckets%>% 
   ggplot(aes(x = prob_bucket, y = prop_played)) +
   geom_bar(stat = "identity")
-  
 ```
 
 Separated by card
@@ -530,15 +591,10 @@ prob_buckets_by_card %>%
 prob_buckets_by_card %>% 
   ggplot(aes(x = prob_bucket, y = prop_played)) +
   geom_bar(stat = "identity") +
-  facet_grid(rows = ~this_card)
+  facet_grid(rows = vars(this_card))
   
 ```
 
-# Error checking
+### Impact of errors
 
-```{r}
-# Errors to review pictures from
-
-played_vs_optimal %>% 
-  filter(is.na(optimal_prob), this_card_played == 1)
-```
+When a player makes an "error" how does that affect their "win probability"? Are some players making "errors" that are really beneficial predictions of their opponent's move?

@@ -107,9 +107,10 @@ braverats <- braverats %>%
   ungroup() %>% 
   # Now we group by Game (as before) and Hold Group so that we can sum the held rounds on each turn.
   # If round is tied, we add up all the other holds from the group. Otherwise, 0 holds at end of turn ("EOT" = End Of Turn)
+  # Holds are capped at 3 as there is no functional difference to having more holds.
   group_by(Game, Hold_Group) %>% 
-  mutate(Holds_EOT_P1 = ifelse(Round_Tied, cumsum(Rounds_Added_To_Hold_P1), 0),
-         Holds_EOT_P2 = ifelse(Round_Tied, cumsum(Rounds_Added_To_Hold_P2), 0)) %>% 
+  mutate(Holds_EOT_P1 = ifelse(Round_Tied, max(3,cumsum(Rounds_Added_To_Hold_P1)), 0),
+         Holds_EOT_P2 = ifelse(Round_Tied, max(3,cumsum(Rounds_Added_To_Hold_P2)), 0)) %>% 
   ungroup() %>% 
   group_by(Game) %>% 
   mutate(
