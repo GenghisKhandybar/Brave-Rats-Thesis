@@ -179,6 +179,7 @@ class ratGame:
 
                 subGameStr = subGame.get_game_str()
                 
+                
                 if subGameStr in knownSolutions:
                     # We may already know this state's value
                     currentRoundMatrix[p1_next][p2_next] = knownSolutions[subGameStr][0]
@@ -199,20 +200,32 @@ class ratGame:
                     #print("Generated new value: " + str(subGameValue))
 
         game_str = self.get_game_str()
-        reducedMatrix = currentRoundMatrix[list(self.cardsAvailiable[0])]
-        reducedMatrix = reducedMatrix[:, list(self.cardsAvailiable[1])]
 
-        if max(self.spies) == 0:
-            # Non-spy round - solve via simultaneous move (simplex method)
-
-            gameResult = self.get_strats_and_value(reducedMatrix, models)
+        # Check if we've already computed this turn.
+        # Note: It's still necessary that we calculated the up-stream values above, to traverse subsequent turns.
+        reverse_str = helperFunctions.reverseGameState(game_str)
+        if type(models[0]) is type(models[1]) and reverse_str in knownSolutions:
+            reverse_solution = knownSolutions[game_str]
+            val = 1 - reverse_solution[0]
+            strats = [reverse_solution[1][1], reverse_solution[1][0]]
+            val_matrix = 1 - np.transpose(reverse_solution[2])
+            knownSolutions[game_str] = (val, strats, val_matrix)
         else:
-            # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
-            # Spy round - sequential solve (minmax)
-            gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+            reducedMatrix = currentRoundMatrix[list(self.cardsAvailiable[0])]
+            reducedMatrix = reducedMatrix[:, list(self.cardsAvailiable[1])]
 
-            
-        knownSolutions[game_str] = gameResult[0]
+            if max(self.spies) == 0:
+                # Non-spy round - solve via simultaneous move (simplex method)
+
+                gameResult = self.get_strats_and_value(reducedMatrix, models)
+
+            else:
+                # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
+                # Spy round - sequential solve (minmax)
+                gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+
+            val = gameResult[1]
+            knownSolutions[game_str] = gameResult[0]
 
         if len(self.cardsAvailiable[0]) >= 7: # Status progress report on high-level turns
             #print("Finished solving gamestate " + self.get_game_str())
@@ -232,7 +245,8 @@ class ratGame:
             startTime = t
             computed_states = states
 
-        return gameResult[1]
+
+        return val
     
     def sequential_sovle(self, reducedMatrix, first_player):
         # For spy turns, we will simply use minmax.
@@ -413,7 +427,7 @@ if __name__ == "__main__":
     #default_console_start(path)
     testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
     # This will solve the game
-    knownSolutions = {}#helperFunctions.read_known_solutions("temp_solution.txt") #{}
+    knownSolutions = helperFunctions.read_known_solutions("temp_solution.txt") #{}
 
     #[models.fullRandom(), models.fullRandom()]
     # [models.simplexSolver(), models.simplexSolver()]

@@ -11,7 +11,7 @@ def reverseGameState(gameState):
         "-s-" + game_str[9][1] + game_str[9][0] + \
         "-h-" + game_str[11][1] + game_str[11][0]
 
-def get_solution_save_string(solution):
+"""def get_solution_save_string(solution):
     ans = ""
     ans += "v|" + str(solution[0])
     ans += "|s1|" + ",".join(map(str,solution[1][0]))
@@ -20,7 +20,7 @@ def get_solution_save_string(solution):
     for line_i in range(len(solution[2])):
         ans += " $ " + str(line_i) + " $ "
         ans += ",".join(map(str,solution[2][line_i]))
-    return ans
+    return ans"""
 
 def get_solution_save_string_2(cardsAvailiable, solution):
     # This version has probabilities for all 8 cards 
@@ -28,10 +28,12 @@ def get_solution_save_string_2(cardsAvailiable, solution):
     ans = ""
     ans += "v|" + str(solution[0])
 
+    # Convert solutions from reduced form (only probabilities for active cards)
+    # to long form (1 )
     long_solutions = []
     for p in range(2):
         s = ""
-        sol_index = 0
+        sol_index = 0 # Index in reduced solution
         for i in range(8):
             if i in cardsAvailiable[p]:
                 s += str(solution[1][p][sol_index])
@@ -50,9 +52,10 @@ def get_solution_save_string_2(cardsAvailiable, solution):
 
 def get_solution_from_string(solution_string):
     sections = solution_string.split("|")
-    value = float(sections[1])
-    s1 = np.array([float(x) if x != "" else None for x in sections[3].split(",")]) # First strategy
-    s2 = np.array([float(x) if x != "" else None for x in sections[5].split(",")]) # Second strategy
+    value = float(sections[1]) # Get position value
+    s1 = np.array([float(x) if x != "" else "" for x in sections[3].split(",")]) # First strategy
+    s2 = np.array([float(x) if x != "" else "" for x in sections[5].split(",")]) # Second strategy
+    # Re-construct values matrix
     m_strings = sections[7].split(" $ ")
     m = []
     for i in range(2, len(m_strings), 2):
@@ -66,6 +69,8 @@ def read_known_solutions(path):
     with open(path, 'r') as f:
 
         for line in f:
+            if "None" in line: # Temporary - removing wrong terms
+                continue
             key_val = line.split(":")
             key = key_val[0]
 
