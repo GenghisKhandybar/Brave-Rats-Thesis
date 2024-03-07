@@ -1,0 +1,1672 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>BraveRatsThesis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="BraveRatsThesis_files/libs/clipboard/clipboard.min.js"></script>
+<script src="BraveRatsThesis_files/libs/quarto-html/quarto.js"></script>
+<script src="BraveRatsThesis_files/libs/quarto-html/popper.min.js"></script>
+<script src="BraveRatsThesis_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="BraveRatsThesis_files/libs/quarto-html/anchor.min.js"></script>
+<link href="BraveRatsThesis_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="BraveRatsThesis_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="BraveRatsThesis_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="BraveRatsThesis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="BraveRatsThesis_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#setup" id="toc-setup" class="nav-link active" data-scroll-target="#setup">Setup</a>
+  <ul class="collapse">
+  <li><a href="#human-data" id="toc-human-data" class="nav-link" data-scroll-target="#human-data">Human data</a></li>
+  </ul></li>
+  <li><a href="#eda" id="toc-eda" class="nav-link" data-scroll-target="#eda">EDA</a></li>
+  <li><a href="#clustering" id="toc-clustering" class="nav-link" data-scroll-target="#clustering">Clustering</a>
+  <ul class="collapse">
+  <li><a href="#optimal-data-for-each-cluster" id="toc-optimal-data-for-each-cluster" class="nav-link" data-scroll-target="#optimal-data-for-each-cluster">Optimal data for each cluster</a></li>
+  </ul></li>
+  <li><a href="#logistic-regression" id="toc-logistic-regression" class="nav-link" data-scroll-target="#logistic-regression">Logistic regression</a></li>
+  <li><a href="#spy-turns" id="toc-spy-turns" class="nav-link" data-scroll-target="#spy-turns">Spy turns</a>
+  <ul class="collapse">
+  <li><a href="#decision-tree-for-spy-turns" id="toc-decision-tree-for-spy-turns" class="nav-link" data-scroll-target="#decision-tree-for-spy-turns">Decision tree for spy turns</a></li>
+  </ul></li>
+  <li><a href="#analysis-of-viability" id="toc-analysis-of-viability" class="nav-link" data-scroll-target="#analysis-of-viability">Analysis of viability</a></li>
+  <li><a href="#human-conformity-to-optimal" id="toc-human-conformity-to-optimal" class="nav-link" data-scroll-target="#human-conformity-to-optimal">Human conformity to optimal</a>
+  <ul class="collapse">
+  <li><a href="#absolute-mistakes" id="toc-absolute-mistakes" class="nav-link" data-scroll-target="#absolute-mistakes">Absolute mistakes</a>
+  <ul class="collapse">
+  <li><a href="#error-rates-by-player" id="toc-error-rates-by-player" class="nav-link" data-scroll-target="#error-rates-by-player">Error rates by player</a></li>
+  </ul></li>
+  <li><a href="#non-absolute-errors" id="toc-non-absolute-errors" class="nav-link" data-scroll-target="#non-absolute-errors">Non-absolute errors</a>
+  <ul class="collapse">
+  <li><a href="#impact-of-errors" id="toc-impact-of-errors" class="nav-link" data-scroll-target="#impact-of-errors">Impact of errors</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">BraveRatsThesis</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="setup" class="level1">
+<h1>Setup</h1>
+<p>allTurns = optimal gameplay data braverats = human data</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching packages ─────────────────────────────────────── tidyverse 1.3.2 ──
+✔ ggplot2 3.4.0      ✔ purrr   1.0.0 
+✔ tibble  3.1.8      ✔ dplyr   1.0.10
+✔ tidyr   1.2.1      ✔ stringr 1.5.0 
+✔ readr   2.1.4      ✔ forcats 0.5.2 </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'readr' was built under R version 4.2.3</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyclust)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tclust)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: package 'tclust' was built under R version 4.2.3</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidymodels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching packages ────────────────────────────────────── tidymodels 1.0.0 ──
+✔ broom        1.0.2     ✔ rsample      1.1.1
+✔ dials        1.1.0     ✔ tune         1.0.1
+✔ infer        1.0.4     ✔ workflows    1.1.2
+✔ modeldata    1.0.1     ✔ workflowsets 1.0.0
+✔ parsnip      1.0.3     ✔ yardstick    1.1.0
+✔ recipes      1.0.4     
+── Conflicts ───────────────────────────────────────── tidymodels_conflicts() ──
+✖ scales::discard() masks purrr::discard()
+✖ dplyr::filter()   masks stats::filter()
+✖ recipes::fixed()  masks stringr::fixed()
+✖ dplyr::lag()      masks stats::lag()
+✖ yardstick::spec() masks readr::spec()
+✖ recipes::step()   masks stats::step()
+• Learn how to get started at https://www.tidymodels.org/start/</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Main data</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>allTurns <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="st">"playableSolutions.txt"</span>, <span class="at">header =</span> <span class="cn">FALSE</span>, <span class="at">sep =</span> <span class="st">"|"</span>, <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"gamestate"</span>, <span class="st">"value"</span>, <span class="st">".s1"</span>,<span class="st">"p1_optimal"</span>,<span class="st">".s2"</span>, <span class="st">"p2_optimal"</span>, <span class="st">".m"</span>, <span class="st">"value_matrix"</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">gamestate =</span> <span class="fu">substr</span>(gamestate,<span class="dv">1</span>, <span class="fu">nchar</span>(gamestate)<span class="sc">-</span><span class="dv">2</span>)) <span class="sc">%&gt;%</span> <span class="co"># Fixing error where extra characters ":v" are added to gamestate</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">gamestate_str =</span> gamestate) <span class="sc">%&gt;%</span> <span class="co">#Making a copy to be used as row labels</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(gamestate, <span class="fu">c</span>(<span class="st">".1"</span>, <span class="st">"p1_cards"</span>, <span class="st">".2"</span>, <span class="st">"p2_cards"</span>, <span class="st">".3"</span>, <span class="st">"wins"</span>, <span class="st">".4"</span>, <span class="st">"generals"</span>, <span class="st">".5"</span>, <span class="st">"spies"</span>, <span class="st">".6"</span>, <span class="st">"holds"</span>), <span class="at">sep =</span> <span class="st">"-"</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(allTurns) <span class="ot">&lt;-</span> allTurns<span class="sc">$</span>gamestate_str</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>allTurns <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(p1_optimal, <span class="fu">paste</span>(<span class="st">"p1_o"</span>, <span class="dv">0</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sep=</span><span class="st">''</span>), <span class="at">sep=</span><span class="st">","</span>, <span class="at">convert =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">separate</span>(p2_optimal, <span class="fu">paste</span>(<span class="st">"p2_o"</span>, <span class="dv">0</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sep=</span><span class="st">''</span>), <span class="at">sep=</span><span class="st">","</span>, <span class="at">convert =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>allTurns <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">starts_with</span>(<span class="st">"."</span>)) <span class="co"># get rid of temp columns starting with "."</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>allTurns <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">cards_left =</span> <span class="fu">nchar</span>(p1_cards),</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>                                <span class="at">turn =</span> <span class="dv">9</span><span class="sc">-</span>cards_left) <span class="sc">%&gt;%</span> </span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p1_c0 =</span> <span class="fu">grepl</span>(<span class="st">"0"</span>,p1_cards),</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_c1 =</span> <span class="fu">grepl</span>(<span class="st">"1"</span>,p1_cards),</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_c2 =</span> <span class="fu">grepl</span>(<span class="st">"2"</span>,p1_cards),</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_c3 =</span> <span class="fu">grepl</span>(<span class="st">"3"</span>,p1_cards),</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_c4 =</span> <span class="fu">grepl</span>(<span class="st">"4"</span>,p1_cards),</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_c5 =</span> <span class="fu">grepl</span>(<span class="st">"5"</span>,p1_cards),</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_c6 =</span> <span class="fu">grepl</span>(<span class="st">"6"</span>,p1_cards),</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_c7 =</span> <span class="fu">grepl</span>(<span class="st">"7"</span>,p1_cards),</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c0 =</span> <span class="fu">grepl</span>(<span class="st">"0"</span>,p2_cards),</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c1 =</span> <span class="fu">grepl</span>(<span class="st">"1"</span>,p2_cards),</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c2 =</span> <span class="fu">grepl</span>(<span class="st">"2"</span>,p2_cards),</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c3 =</span> <span class="fu">grepl</span>(<span class="st">"3"</span>,p2_cards),</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c4 =</span> <span class="fu">grepl</span>(<span class="st">"4"</span>,p2_cards),</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c5 =</span> <span class="fu">grepl</span>(<span class="st">"5"</span>,p2_cards),</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c6 =</span> <span class="fu">grepl</span>(<span class="st">"6"</span>,p2_cards),</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>          <span class="at">p2_c7 =</span> <span class="fu">grepl</span>(<span class="st">"7"</span>,p2_cards),</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>          <span class="at">p1_wins =</span> <span class="fu">as.numeric</span>(<span class="fu">substring</span>(wins, <span class="dv">1</span>,<span class="dv">1</span>)),</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>         <span class="at">p2_wins =</span> <span class="fu">as.numeric</span>(<span class="fu">substring</span>(wins, <span class="dv">2</span>,<span class="dv">2</span>)),</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>         <span class="at">p1_general =</span> <span class="fu">substring</span>(generals, <span class="dv">1</span>,<span class="dv">1</span>)<span class="sc">==</span><span class="dv">1</span>,</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>         <span class="at">p2_general =</span> <span class="fu">substring</span>(generals, <span class="dv">2</span>,<span class="dv">2</span>)<span class="sc">==</span><span class="dv">1</span>,</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>         <span class="at">p1_spy =</span> <span class="fu">substring</span>(spies, <span class="dv">1</span>,<span class="dv">1</span>)<span class="sc">==</span><span class="dv">1</span>,</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>         <span class="at">p2_spy =</span> <span class="fu">substring</span>(spies,<span class="dv">2</span>,<span class="dv">2</span>)<span class="sc">==</span><span class="dv">1</span>,</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>         <span class="at">p1_holds =</span> <span class="fu">as.numeric</span>(<span class="fu">substring</span>(holds,<span class="dv">1</span>,<span class="dv">1</span>)),</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>         <span class="at">p2_holds =</span> <span class="fu">as.numeric</span>(<span class="fu">substring</span>(holds,<span class="dv">2</span>,<span class="dv">2</span>))</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>         )</span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a><span class="co"># c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7")</span></span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a><span class="co"># c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(turn <span class="sc">==</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span> <span class="fu">filter</span>(p1_c2<span class="sc">==</span><span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                          p1_cards p2_cards wins generals spies
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11  0134567  1234567   00       00    10
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00  0134567  0234567   10       00    10
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11  0134567  0134567   00       00    00
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00  0134567  0124567   10       00    10
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00  0134567  0123567   02       00    10
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00  0134567  0123467   01       00    00
+                                          holds     value     p1_o0     p1_o1
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11    11 0.7494631 0.0000000 0.0000000
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00    00 0.7495482 0.0000000 0.0000000
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11    11 0.5000000 0.0179762 0.1385441
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00    00 0.6576480 0.0000000 1.0000000
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00    00 0.2894023 1.0000000 0.0000000
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00    00 0.4938900 0.0000000 0.0000000
+                                          p1_o2     p1_o3     p1_o4     p1_o5
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11    NA 0.0000000 0.0000000 0.0000000
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00    NA 1.0000000 0.0000000 0.0000000
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11    NA 0.2100498 0.2435947 0.1357079
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00    NA 0.0000000 0.0000000 0.0000000
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00    NA 0.0000000 0.0000000 0.0000000
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00    NA 0.2972525 0.2305580 0.3835454
+                                               p1_o6      p1_o7     p2_o0
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11 0.00000000 1.00000000        NA
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00 0.00000000 0.00000000 0.0000000
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11 0.06834033 0.18578699 0.0179762
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00 0.00000000 0.00000000 1.0000000
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00 0.00000000 0.00000000 0.0000000
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00 0.00000000 0.08864415 0.1481347
+                                              p2_o1     p2_o2     p2_o3
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11 0.0000000 0.0000000 0.0000000
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00        NA 0.0000000 0.0000000
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11 0.1385441        NA 0.2100498
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00 0.0000000 0.0000000        NA
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00 0.0000000 0.0000000 1.0000000
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00 0.0000000 0.3114831 0.4771926
+                                              p2_o4     p2_o5      p2_o6
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11 0.0000000 1.0000000 0.00000000
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00 1.0000000 0.0000000 0.00000000
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11 0.2435947 0.1357079 0.06834033
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00 0.0000000 0.0000000 0.00000000
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00        NA 0.0000000 0.00000000
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00 0.0000000        NA 0.06318964
+                                             p2_o7
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11 0.000000
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00 0.000000
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11 0.185787
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00 0.000000
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00 0.000000
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00 0.000000
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 value_matrix
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11           $ 0 $ 0.5359765066849157,0.10714285714285715,0.5358649789029536,0.513018191654832,0.29673995215576826,0.3299589263766872,0.6560970993224594 $ 1 $ 0.6257321969451572,0.09125591235264781,0.8270551581847915,0.024682624612785135,0.32370359860009523,0.24200490937998304,1.0 $ 2 $ 0.21267518470625466,0.18018819268997768,0.5307563349373893,0.7637725348656053,0.358974776639583,0.7906829573949856,0.33558176268989215 $ 3 $ 0.9756895081034971,0.8222222222222221,0.16290368207567169,0.5054668911924757,0.32581886349486155,0.32803290800089396,0.2727859349548566 $ 4 $ 0.7427174105690173,0.6338779348985621,0.6504690958848024,0.63423804514053,0.5073481768040426,0.21438774424003398,0.1985579657225825 $ 5 $ 0.8169870991163212,0.6702482769083606,0.18585578346285106,0.7099874862704268,0.7188265029522084,0.4880246186754969,0.21616935854100855 $ 6 $ 0.0,0.4448118229068821,0.6661769067059857,0.611994545286685,0.7494630871794623,0.7614529349213475,0.4909596261255496
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00  $ 0 $ 0.6161397645171796,0.4226944492753995,0.6406959765773969,0.5509669206238069,0.6317326373920445,0.5939073305481337,0.8201385314026144 $ 1 $ 0.7374100410606805,0.37400150505866947,0.8466179829993825,0.26284577150615773,0.6759727682405077,0.6020151133501259,1.0 $ 2 $ 0.5983782171467086,0.40299174665031295,0.5747108727810709,0.7495481929083895,0.5894061588735642,0.7702572143591636,0.7014366501509197 $ 3 $ 0.7157981678930769,0.8773789471701495,0.5142922353497585,0.5887646825040741,0.6314999961111235,0.5580917743116749,0.6800623932717766 $ 4 $ 0.7427174105690173,0.6394937107358483,0.6910239171445918,0.6334395926961638,0.6106200107894669,0.4689903561034627,0.48797944812829297 $ 5 $ 0.8144743357671909,0.7283637033481802,0.4179456458423042,0.7469863735075386,0.7720209753470642,0.6085084335870132,0.530871057017545 $ 6 $ 0.34892025829111256,0.42814476122341993,0.5436639298979613,0.5033533536797224,0.6584719319759629,0.6755548433298608,0.5216427980285933
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11                                                        $ 0 $ 0.5000000000000001,0.545923445881741,0.5168457609502605,0.46099449539247694,0.36612206510143774,0.3562538606673258,0.6485174605284549 $ 1 $ 0.454076554118259,0.5,0.7357460078435349,0.06313994634875268,0.36050628926415174,0.2623775783614966,1.0 $ 2 $ 0.4831542390497393,0.26425399215646506,0.5,0.6842380395535411,0.41160562372422865,0.7258957952773186,0.41733899051831946 $ 3 $ 0.5390055046075231,0.9368600536512472,0.31576196044645877,0.4999999999999999,0.45076742603633263,0.39382519445339853,0.45376899291453016 $ 4 $ 0.6338779348985621,0.6394937107358483,0.5883943762757713,0.5492325739636672,0.5,0.2823733666000345,0.2985866119249647 $ 5 $ 0.6437461393326743,0.7376224216385036,0.2741042047226814,0.6061748055466014,0.7176266333999657,0.4999999999999999,0.26611337066211854 $ 6 $ 0.3514825394715449,0.0,0.5826610094816804,0.5462310070854699,0.7014133880750352,0.7338866293378815,0.49999999999999994
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00                                     $ 0 $ 0.6405900885089804,0.6406959765773969,0.5,0.5112790356109065,0.6242006419272463,0.7010228166797797,0.8581824144195647 $ 1 $ 0.6576480064177095,0.7386750887908715,0.4373813408393564,0.27911730700063314,0.6449497298189756,0.6666666666666666,1.0 $ 2 $ 0.649181587221299,0.48703128120280303,0.4999999999999999,0.7311561968974155,0.6320358962653929,0.7875801136269129,0.750468129466495 $ 3 $ 0.6063105703320284,0.9249333286856477,0.7973280447428034,0.5092370758531046,0.5244409123500109,0.5256028802893604,0.6256513272569868 $ 4 $ 0.6504690958848024,0.6910239171445918,0.5883943762757713,0.6084323862522247,0.5788092811591512,0.5188849350039892,0.5220035598983424 $ 5 $ 0.6343662524813758,0.7024782832732632,0.5745124996051193,0.6284605693802399,0.6719716085126416,0.5471769207516451,0.5849056603773584 $ 6 $ 0.4360164746438562,0.0,0.4631902388009331,0.6206420010178819,0.7673825664124818,0.7700363845159405,0.8295454545454546
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00                                                                         $ 0 $ 0.26029571475777014,0.23348755810299665,0.0,0.28940231785403014,0.11655629139072848,0.21379579124328857,0.38857161140236596 $ 1 $ 0.20637608958475673,0.19216234442159263,0.0,0.27911730700063314,0.10163639627277331,0.03821732252761617,1.0 $ 2 $ 0.26431974096050537,0.07010420916112856,0.0,0.2723137508713688,0.207678343168122,0.39228153339523053,0.13488444419437523 $ 3 $ 0.371299240389101,0.464849409040326,0.3457829938306155,0.0685378371538647,0.19420081332075217,0.075730420390523,0.11918876326232183 $ 4 $ 0.17302721484682965,0.2137549433202716,0.2682374623427985,0.211196941944732,0.3103939331348614,0.0,0.0 $ 5 $ 0.26655719879883866,0.24528286902401142,0.2142857142857143,0.045289717152723626,0.36912131004178006,0.24895821706985038,0.055340511642064646 $ 6 $ 0.14098033812830946,0.0,0.06209059566565228,0.16433035032564644,0.362151607467383,0.33657684427005297,0.2094594476967554
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00                             $ 0 $ 0.4802905745908309,0.510829758873635,0.24349088034039104,0.5270683483847114,0.41722788125737365,0.5316057102727694,0.6398263399553535 $ 1 $ 0.493545932434619,0.5786271399553735,0.24811469702271274,0.6449497298189756,0.10163639627277331,0.4999999999999999,1.0 $ 2 $ 0.48866359385492464,0.3800706082822035,0.3546022915494513,0.5634274447444476,0.5774346732551429,0.6676093741795444,0.6284175863409316 $ 3 $ 0.5510623544309767,0.7895009496140054,0.6752786060240575,0.35676144085920536,0.5044968907591015,0.5012975105790078,0.4999942755122474 $ 4 $ 0.4971696107270478,0.5249874561859305,0.5,0.5116234661472567,0.4579929634976223,0.32216525002874274,0.390930894383186 $ 5 $ 0.49607362239842445,0.5698750090460781,0.4827186606086067,0.31362605301314356,0.4958604529033342,0.5372637786358133,0.39710193460324883 $ 6 $ 0.34852426736374936,0.0,0.4627497064242062,0.5406427911969933,0.46521953686534023,0.635105227210248,0.6344765212469216
+                                                                      gamestate_str
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11 p1-0134567-p2-1234567-w-00-g-00-s-10-h-11
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00 p1-0134567-p2-0234567-w-10-g-00-s-10-h-00
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11 p1-0134567-p2-0134567-w-00-g-00-s-00-h-11
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00 p1-0134567-p2-0124567-w-10-g-00-s-10-h-00
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00 p1-0134567-p2-0123567-w-02-g-00-s-10-h-00
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00 p1-0134567-p2-0123467-w-01-g-00-s-00-h-00
+                                          cards_left turn p1_c0 p1_c1 p1_c2
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11          7    2  TRUE  TRUE FALSE
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00          7    2  TRUE  TRUE FALSE
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11          7    2  TRUE  TRUE FALSE
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00          7    2  TRUE  TRUE FALSE
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00          7    2  TRUE  TRUE FALSE
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00          7    2  TRUE  TRUE FALSE
+                                          p1_c3 p1_c4 p1_c5 p1_c6 p1_c7 p2_c0
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11  TRUE  TRUE  TRUE  TRUE  TRUE FALSE
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+                                          p2_c1 p2_c2 p2_c3 p2_c4 p2_c5 p2_c6
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00 FALSE  TRUE  TRUE  TRUE  TRUE  TRUE
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11  TRUE FALSE  TRUE  TRUE  TRUE  TRUE
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00  TRUE  TRUE FALSE  TRUE  TRUE  TRUE
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00  TRUE  TRUE  TRUE FALSE  TRUE  TRUE
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00  TRUE  TRUE  TRUE  TRUE FALSE  TRUE
+                                          p2_c7 p1_wins p2_wins p1_general
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11  TRUE       0       0      FALSE
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00  TRUE       1       0      FALSE
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11  TRUE       0       0      FALSE
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00  TRUE       1       0      FALSE
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00  TRUE       0       2      FALSE
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00  TRUE       0       1      FALSE
+                                          p2_general p1_spy p2_spy p1_holds
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11      FALSE   TRUE  FALSE        1
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00      FALSE   TRUE  FALSE        0
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11      FALSE  FALSE  FALSE        1
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00      FALSE   TRUE  FALSE        0
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00      FALSE   TRUE  FALSE        0
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00      FALSE  FALSE  FALSE        0
+                                          p2_holds
+p1-0134567-p2-1234567-w-00-g-00-s-10-h-11        1
+p1-0134567-p2-0234567-w-10-g-00-s-10-h-00        0
+p1-0134567-p2-0134567-w-00-g-00-s-00-h-11        1
+p1-0134567-p2-0124567-w-10-g-00-s-10-h-00        0
+p1-0134567-p2-0123567-w-02-g-00-s-10-h-00        0
+p1-0134567-p2-0123467-w-01-g-00-s-00-h-00        0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A dataframe of just the optimal probabilities (0 for non-possibilities)</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>p1_optimal_turns <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#filter(turn &lt;=5) %&gt;% </span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy <span class="sc">==</span> <span class="dv">0</span> <span class="sc">&amp;&amp;</span> p2_spy <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_all</span>(<span class="sc">~</span><span class="fu">replace</span>(., <span class="fu">is.na</span>(.), <span class="dv">0</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in p1_spy == 0 &amp;&amp; p2_spy == 0: 'length(x) = 536557 &gt; 1' in coercion to
+'logical(1)'
+
+Warning in p1_spy == 0 &amp;&amp; p2_spy == 0: 'length(x) = 536557 &gt; 1' in coercion to
+'logical(1)'</code></pre>
+</div>
+</div>
+<section id="human-data" class="level3">
+<h3 class="anchored" data-anchor-id="human-data">Human data</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">#braverats &lt;- read.csv("BraveRatsData.csv")</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"readHumanData.r"</span>)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(braverats, <span class="dv">30</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   Game Winner Turn P1 P2 P1_Prev P2_Prev p1_general p2_general Round_Winner_P2
+1     1      1    1  2  2      -1      -1      FALSE      FALSE           FALSE
+2     1      1    2  7  5       2       2      FALSE      FALSE           FALSE
+3     1      1    3  4  4       7       5      FALSE      FALSE           FALSE
+4     1      1    4  0  1       4       4      FALSE      FALSE           FALSE
+5     1      1    5  6  3       0       1      FALSE      FALSE            TRUE
+6     2      0    1  3  5      -1      -1      FALSE      FALSE            TRUE
+7     2      0    2  2  1       3       5      FALSE      FALSE           FALSE
+8     2      0    3  4  0       2       1      FALSE      FALSE           FALSE
+9     2      0    4  7  6       4       0      FALSE      FALSE           FALSE
+10    3      0    1  3  4      -1      -1      FALSE      FALSE           FALSE
+11    3      0    2  6  7       3       4      FALSE      FALSE            TRUE
+12    3      0    3  4  5       6       7       TRUE      FALSE           FALSE
+13    3      0    4  2  1       4       5      FALSE      FALSE           FALSE
+14    3      0    5  5  0       2       1      FALSE      FALSE           FALSE
+15    4      1    1  4  2      -1      -1      FALSE      FALSE           FALSE
+16    4      1    2  0  5       4       2      FALSE      FALSE            TRUE
+17    4      1    3  7  1       0       5      FALSE      FALSE            TRUE
+18    5      1    1  3  4      -1      -1      FALSE      FALSE           FALSE
+19    5      1    2  4  3       3       4      FALSE      FALSE            TRUE
+20    5      1    3  7  2       4       3      FALSE      FALSE           FALSE
+21    5      1    4  0  1       7       2      FALSE      FALSE           FALSE
+22    5      1    5  1  6       0       1      FALSE      FALSE            TRUE
+23    5      1    6  6  5       1       6      FALSE       TRUE            TRUE
+24    6      1    1  2  4      -1      -1      FALSE      FALSE            TRUE
+25    6      1    2  4  0       2       4      FALSE      FALSE           FALSE
+26    6      1    3  7  3       4       0      FALSE      FALSE           FALSE
+27    6      1    4  6  6       7       3      FALSE      FALSE           FALSE
+28    6      1    5  1  5       6       6      FALSE      FALSE            TRUE
+29    7      1    1  3  2      -1      -1      FALSE      FALSE            TRUE
+30    7      1    2  0  4       3       2      FALSE      FALSE           FALSE
+   p1_holds p2_holds Round_Wins_P1 Round_Wins_P2 Total_Wins_EOT_P1
+1         0        0             0             0                 0
+2         3        3             4             0                 4
+3         0        0             0             0                 4
+4         3        3             0             0                 4
+5         3        3             0             4                 4
+6         0        0             0             1                 0
+7         0        0             1             0                 1
+8         0        0             0             0                 1
+9         3        3             4             0                 5
+10        0        0             1             0                 1
+11        0        0             0             1                 1
+12        0        0             1             0                 2
+13        0        0             1             0                 3
+14        0        0             1             0                 4
+15        0        0             2             0                 2
+16        0        0             0             1                 2
+17        0        0             0             4                 2
+18        0        0             1             0                 1
+19        0        0             0             1                 1
+20        0        0             1             0                 2
+21        0        0             0             0                 2
+22        3        3             0             4                 2
+23        0        0             0             1                 2
+24        0        0             0             2                 0
+25        0        0             0             0                 0
+26        3        3             4             0                 4
+27        0        0             0             0                 4
+28        3        3             0             4                 4
+29        0        0             0             1                 0
+30        0        0             0             0                 0
+   Total_Wins_EOT_P2 p1_wins p2_wins p1_c2 p1_c7 p1_c4 p1_c0 p1_c6 p1_c3 p1_c5
+1                  0       0       0  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+2                  0       0       0 FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+3                  0       4       0 FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE
+4                  0       4       0 FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE
+5                  4       4       0 FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE
+6                  1       0       0  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+7                  1       0       1  TRUE  TRUE  TRUE  TRUE  TRUE FALSE  TRUE
+8                  1       1       1 FALSE  TRUE  TRUE  TRUE  TRUE FALSE  TRUE
+9                  1       1       1 FALSE  TRUE FALSE  TRUE  TRUE FALSE  TRUE
+10                 0       0       0  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+11                 1       1       0  TRUE  TRUE  TRUE  TRUE  TRUE FALSE  TRUE
+12                 1       1       1  TRUE  TRUE  TRUE  TRUE FALSE FALSE  TRUE
+13                 1       2       1  TRUE  TRUE FALSE  TRUE FALSE FALSE  TRUE
+14                 1       3       1 FALSE  TRUE FALSE  TRUE FALSE FALSE  TRUE
+15                 0       0       0  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+16                 1       2       0  TRUE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE
+17                 5       2       1  TRUE  TRUE FALSE FALSE  TRUE  TRUE  TRUE
+18                 0       0       0  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+19                 1       1       0  TRUE  TRUE  TRUE  TRUE  TRUE FALSE  TRUE
+20                 1       1       1  TRUE  TRUE FALSE  TRUE  TRUE FALSE  TRUE
+21                 1       2       1  TRUE FALSE FALSE  TRUE  TRUE FALSE  TRUE
+22                 5       2       1  TRUE FALSE FALSE FALSE  TRUE FALSE  TRUE
+23                 6       2       5  TRUE FALSE FALSE FALSE  TRUE FALSE  TRUE
+24                 2       0       0  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+25                 2       0       2 FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+26                 2       0       2 FALSE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE
+27                 2       4       2 FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE
+28                 6       4       2 FALSE FALSE FALSE  TRUE FALSE  TRUE  TRUE
+29                 1       0       0  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+30                 1       0       1  TRUE  TRUE  TRUE  TRUE  TRUE FALSE  TRUE
+   p1_c1 p2_c2 p2_c5 p2_c4 p2_c1 p2_c3 p2_c0 p2_c6 p2_c7  p1_name p2_name
+1   TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+2   TRUE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+3   TRUE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+4   TRUE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+5   TRUE FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE William    Kiran
+6   TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+7   TRUE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+8   TRUE  TRUE FALSE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE William    Kiran
+9   TRUE  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE  TRUE William    Kiran
+10  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+11  TRUE  TRUE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+12  TRUE  TRUE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE FALSE William    Kiran
+13  TRUE  TRUE FALSE FALSE  TRUE  TRUE  TRUE  TRUE FALSE William    Kiran
+14  TRUE  TRUE FALSE FALSE FALSE  TRUE  TRUE  TRUE FALSE William    Kiran
+15  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+16  TRUE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+17  TRUE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+18  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+19  TRUE  TRUE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+20  TRUE  TRUE  TRUE FALSE  TRUE FALSE  TRUE  TRUE  TRUE William    Kiran
+21  TRUE FALSE  TRUE FALSE  TRUE FALSE  TRUE  TRUE  TRUE William    Kiran
+22  TRUE FALSE  TRUE FALSE FALSE FALSE  TRUE  TRUE  TRUE William    Kiran
+23 FALSE FALSE  TRUE FALSE FALSE FALSE  TRUE FALSE  TRUE William    Kiran
+24  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+25  TRUE  TRUE  TRUE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+26  TRUE  TRUE  TRUE FALSE  TRUE  TRUE FALSE  TRUE  TRUE William    Kiran
+27  TRUE  TRUE  TRUE FALSE  TRUE FALSE FALSE  TRUE  TRUE William    Kiran
+28  TRUE  TRUE  TRUE FALSE  TRUE FALSE FALSE FALSE  TRUE William    Kiran
+29  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+30  TRUE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE William    Kiran
+   Flipped Outcome Round_Winner p1_spy p2_spy
+1    FALSE    Loss          Tie  FALSE  FALSE
+2    FALSE    Loss          Win  FALSE  FALSE
+3    FALSE    Loss          Tie  FALSE  FALSE
+4    FALSE    Loss          Tie  FALSE  FALSE
+5    FALSE    Loss         Loss  FALSE  FALSE
+6    FALSE     Win         Loss  FALSE  FALSE
+7    FALSE     Win          Win  FALSE  FALSE
+8    FALSE     Win          Tie   TRUE  FALSE
+9    FALSE     Win          Win  FALSE  FALSE
+10   FALSE     Win          Win  FALSE  FALSE
+11   FALSE     Win         Loss  FALSE  FALSE
+12   FALSE     Win          Win  FALSE  FALSE
+13   FALSE     Win          Win  FALSE  FALSE
+14   FALSE     Win          Win   TRUE  FALSE
+15   FALSE    Loss          Win  FALSE  FALSE
+16   FALSE    Loss         Loss  FALSE   TRUE
+17   FALSE    Loss         Loss  FALSE  FALSE
+18   FALSE    Loss          Win  FALSE  FALSE
+19   FALSE    Loss         Loss  FALSE  FALSE
+20   FALSE    Loss          Win  FALSE  FALSE
+21   FALSE    Loss          Tie  FALSE   TRUE
+22   FALSE    Loss         Loss  FALSE  FALSE
+23   FALSE    Loss         Loss  FALSE  FALSE
+24   FALSE    Loss         Loss  FALSE  FALSE
+25   FALSE    Loss          Tie   TRUE  FALSE
+26   FALSE    Loss          Win  FALSE  FALSE
+27   FALSE    Loss          Tie  FALSE  FALSE
+28   FALSE    Loss         Loss  FALSE  FALSE
+29   FALSE    Loss         Loss  FALSE  FALSE
+30   FALSE    Loss          Tie  FALSE   TRUE</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>joined_human_ai <span class="ot">&lt;-</span> braverats <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(allTurns, <span class="at">by=</span><span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"p1_c"</span>, <span class="dv">0</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sep=</span><span class="st">''</span>), <span class="fu">paste</span>(<span class="st">"p2_c"</span>, <span class="dv">0</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sep=</span><span class="st">''</span>), </span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>                                                <span class="st">"p1_wins"</span>, <span class="st">"p2_wins"</span>, <span class="st">"p1_holds"</span>, <span class="st">"p2_holds"</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                                                <span class="st">"p1_spy"</span>, <span class="st">"p2_spy"</span>, <span class="st">"p1_general"</span>, <span class="st">"p2_general"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="eda" class="level1">
+<h1>EDA</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(allTurns<span class="sc">$</span>value)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> turn)) <span class="sc">+</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a>allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(turn) <span class="sc">%&gt;%</span> </span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 2
+   turn  count
+  &lt;dbl&gt;  &lt;int&gt;
+1     1      1
+2     2     62
+3     3   2448
+4     4  37052
+5     5 165364
+6     6 218745
+7     7  99012
+8     8  13873</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">factor</span>(turn), <span class="at">y =</span> value)) <span class="sc">+</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_violin</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Groups with fewer than two data points have been dropped.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid" width="672"></p>
+</div>
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">factor</span>(turn), <span class="at">y =</span> value)) <span class="sc">+</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-9-2.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> value)) <span class="sc">+</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>() <span class="sc">+</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="at">rows =</span> <span class="fu">vars</span>(cards_left), <span class="at">scales =</span> <span class="st">"free_y"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>card_optimals <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>), <span class="at">names_prefix=</span><span class="st">"p1_o"</span>, <span class="at">names_to =</span> <span class="st">"card"</span>, <span class="at">values_to =</span> <span class="st">"optimal_prob"</span>) </span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>card_optimals <span class="sc">%&gt;%</span> </span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> optimal_prob)) <span class="sc">+</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="at">rows =</span> <span class="fu">vars</span>(card))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 2562478 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>card_optimals <span class="sc">%&gt;%</span> </span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(card,turn,optimal_prob) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(optimal_prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(card,turn) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">avg_prob =</span> <span class="fu">mean</span>(optimal_prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> turn, <span class="at">y =</span> avg_prob, <span class="at">color =</span> card)) <span class="sc">+</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'card'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="clustering" class="level1">
+<h1>Clustering</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>k <span class="ot">&lt;-</span> <span class="dv">12</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>kmeans_spec <span class="ot">&lt;-</span> <span class="fu">k_means</span>(<span class="at">num_clusters=</span>k)</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>kmeans_fit <span class="ot">&lt;-</span> kmeans_spec <span class="sc">%&gt;%</span> <span class="fu">fit</span>(<span class="sc">~</span>p1_o0<span class="sc">+</span>p1_o1<span class="sc">+</span>p1_o2<span class="sc">+</span>p1_o3<span class="sc">+</span>p1_o4<span class="sc">+</span>p1_o5<span class="sc">+</span>p1_o6<span class="sc">+</span>p1_o7,<span class="at">data =</span> p1_optimal_turns)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>kmeans_fit<span class="sc">$</span>fit<span class="sc">$</span>tot.withinss</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 34728.22</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>kmeans_fit<span class="sc">$</span>fit<span class="sc">$</span>betweenss</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 331672.9</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>df_clusters <span class="ot">&lt;-</span> kmeans_fit<span class="sc">$</span>fit<span class="sc">$</span>centers <span class="sc">%&gt;%</span> </span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">data.frame</span>() <span class="sc">%&gt;%</span> <span class="fu">mutate</span>(<span class="at">cluster_num =</span> <span class="dv">1</span><span class="sc">:</span>k) <span class="sc">%&gt;%</span> </span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>), <span class="at">names_prefix=</span><span class="st">"p1_o"</span>, <span class="at">names_to =</span> <span class="st">"card"</span>, <span class="at">values_to =</span> <span class="st">"optimal_prob"</span>) </span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>df_clusters <span class="sc">%&gt;%</span> </span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> card, <span class="at">y =</span> optimal_prob)) <span class="sc">+</span></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>) <span class="sc">+</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="at">rows =</span> <span class="fu">vars</span>(cluster_num))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Total number of turns in each cluster</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>cluster_info <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#filter(turn &lt;=5) %&gt;% </span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy <span class="sc">==</span> <span class="dv">0</span> <span class="sc">&amp;&amp;</span> p2_spy <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">cluster =</span> kmeans_fit<span class="sc">$</span>fit<span class="sc">$</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in p1_spy == 0 &amp;&amp; p2_spy == 0: 'length(x) = 536557 &gt; 1' in coercion to
+'logical(1)'
+
+Warning in p1_spy == 0 &amp;&amp; p2_spy == 0: 'length(x) = 536557 &gt; 1' in coercion to
+'logical(1)'</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>cluster_info <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span> </span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> </span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prop =</span> n<span class="sc">/</span><span class="fu">sum</span>(n))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 3
+   cluster     n   prop
+     &lt;int&gt; &lt;int&gt;  &lt;dbl&gt;
+ 1       1 55427 0.103 
+ 2       2 31607 0.0589
+ 3       3 45798 0.0854
+ 4       4 36272 0.0676
+ 5       5 26267 0.0490
+ 6       6 61788 0.115 
+ 7       7 34479 0.0643
+ 8       8 33075 0.0616
+ 9       9 67507 0.126 
+10      10 54312 0.101 
+11      11 27799 0.0518
+12      12 62226 0.116 </code></pre>
+</div>
+</div>
+<section id="optimal-data-for-each-cluster" class="level2">
+<h2 class="anchored" data-anchor-id="optimal-data-for-each-cluster">Optimal data for each cluster</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># What turns are this particular cluster in?</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>cluster_info <span class="sc">%&gt;%</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(turn, cluster) <span class="sc">%&gt;%</span> </span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> </span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span><span class="st">"turn"</span>, <span class="at">names_prefix=</span><span class="st">"Turn_"</span>, <span class="at">values_from=</span>count, <span class="at">id_cols=</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'turn'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 9
+   cluster Turn_1 Turn_2 Turn_3 Turn_4 Turn_5 Turn_6 Turn_7 Turn_8
+     &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;
+ 1      11      1     27    575   5137  12693   7475   1891     NA
+ 2       2     NA      3    145   2240   8217  12819   7020   1163
+ 3       3     NA      7    179   2337  11249  18393  11500   2133
+ 4       4     NA      7    423   5369  15082  11926   3465     NA
+ 5       6     NA      3     95   3179  21395  26811   9103   1202
+ 6       7     NA      3    174   2756  12913  14116   4517     NA
+ 7       8     NA      4    205   3028  12148  14107   3583     NA
+ 8       9     NA      5    229   3795  19527  28218  13620   2113
+ 9      10     NA      2    139   2465  13573  24618  11460   2055
+10      12     NA      1     50   1742  14632  28117  15596   2088
+11       1     NA     NA    161   3562  16686  22378  10996   1644
+12       5     NA     NA     73   1442   7249   9767   6261   1475</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How are the optimal probabilities distributed in real turns from this cluster?</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="co"># TRY TO ADD CENTROIDS TO THIS</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>cluster_info <span class="sc">%&gt;%</span> </span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(cluster<span class="sc">==</span><span class="dv">3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>),</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_prefix=</span><span class="st">"p1_o"</span>, <span class="at">names_to =</span> <span class="st">"card"</span>, <span class="at">values_to =</span> <span class="st">"optimal_prob"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> optimal_prob)) <span class="sc">+</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="at">rows =</span> <span class="fu">vars</span>(card))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 228268 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p><strong>Human data counts in each cluster</strong></p>
+<div class="cell" data-waring="false">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Joining human data with clusters</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>human_clusters <span class="ot">&lt;-</span> braverats <span class="sc">%&gt;%</span> <span class="fu">left_join</span>(cluster_info, <span class="at">by=</span><span class="fu">c</span>(<span class="fu">paste</span>(<span class="st">"p1_c"</span>, <span class="dv">0</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sep=</span><span class="st">''</span>), <span class="fu">paste</span>(<span class="st">"p2_c"</span>, <span class="dv">0</span><span class="sc">:</span><span class="dv">7</span>, <span class="at">sep=</span><span class="st">''</span>), </span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>                                                <span class="st">"p1_wins"</span>, <span class="st">"p2_wins"</span>, <span class="st">"p1_holds"</span>, <span class="st">"p2_holds"</span>,</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>                                                <span class="st">"p1_spy"</span>, <span class="st">"p2_spy"</span>, <span class="st">"p1_general"</span>, <span class="st">"p2_general"</span>))</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-6"><a href="#cb45-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Overall counts and props</span></span>
+<span id="cb45-7"><a href="#cb45-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-8"><a href="#cb45-8" aria-hidden="true" tabindex="-1"></a>human_clusters <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span> </span>
+<span id="cb45-9"><a href="#cb45-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> </span>
+<span id="cb45-10"><a href="#cb45-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prop =</span> n<span class="sc">/</span><span class="fu">sum</span>(n)) <span class="sc">%&gt;%</span> </span>
+<span id="cb45-11"><a href="#cb45-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 13 × 3
+   cluster     n    prop
+     &lt;int&gt; &lt;int&gt;   &lt;dbl&gt;
+ 1      NA   564 0.443  
+ 2      11   369 0.290  
+ 3       6    79 0.0620 
+ 4       3    56 0.0440 
+ 5       4    43 0.0338 
+ 6      12    39 0.0306 
+ 7       9    26 0.0204 
+ 8       7    24 0.0188 
+ 9       1    21 0.0165 
+10       2    21 0.0165 
+11       8    13 0.0102 
+12       5    10 0.00785
+13      10     9 0.00706</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="co"># By person counts and props</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>human_clusters <span class="sc">%&gt;%</span> <span class="fu">group_by</span>(cluster, p1_name) <span class="sc">%&gt;%</span> </span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">n =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> </span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(p1_name) <span class="sc">%&gt;%</span> </span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prop_for_player =</span> n<span class="sc">/</span><span class="fu">sum</span>(n)) <span class="sc">%&gt;%</span> </span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(n))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'cluster'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 93 × 4
+# Groups:   p1_name [11]
+   cluster p1_name        n prop_for_player
+     &lt;int&gt; &lt;chr&gt;      &lt;int&gt;           &lt;dbl&gt;
+ 1      NA "William "   264          0.444 
+ 2      11 "William "   168          0.283 
+ 3      NA "Sean"        72          0.429 
+ 4      NA "Michael"     66          0.482 
+ 5      11 "Sean"        51          0.304 
+ 6      NA "Kiran"       45          0.372 
+ 7      11 "Kiran"       38          0.314 
+ 8      11 "Michael"     36          0.263 
+ 9       6 "William "    35          0.0589
+10      NA "Daniel"      30          0.484 
+# … with 83 more rows</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co"># What turns are each cluster in for humans?</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>human_clusters <span class="sc">%&gt;%</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(turn, cluster) <span class="sc">%&gt;%</span> </span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">count =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> </span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span><span class="st">"turn"</span>, <span class="at">names_prefix=</span><span class="st">"Turn_"</span>, <span class="at">values_from=</span>count, <span class="at">id_cols=</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'turn'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 13 × 10
+   cluster Turn_1 Turn_2 Turn_3 Turn_4 Turn_5 Turn_6 Turn_7 Turn_8 Turn_NA
+     &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;   &lt;int&gt;
+ 1      11    246     73     40      6     NA      3      1     NA      NA
+ 2       2     NA      8      6      3     NA      4     NA     NA      NA
+ 3       3     NA     28     10     11      2      1      2      2      NA
+ 4       4     NA     16     19      3      4      1     NA     NA      NA
+ 5       6     NA     42      6     13     12      5      1     NA      NA
+ 6       7     NA      2     14      3      2      2      1     NA      NA
+ 7       9     NA      8     10      5      1      2     NA     NA      NA
+ 8      12     NA     21      3      8      2      1      3      1      NA
+ 9       1     NA     NA     11      5      2      1      2     NA      NA
+10       5     NA     NA      2      4      4     NA     NA     NA      NA
+11       8     NA     NA      5      7     NA      1     NA     NA      NA
+12      10     NA     NA     NA      2      1      5     NA      1      NA
+13      NA     NA     NA     NA     NA     NA     NA     NA     NA     564</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="co"># How are the optimal probabilities distributed in real turns from this cluster?</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>human_clusters <span class="sc">%&gt;%</span> </span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>),</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>               <span class="at">names_prefix=</span><span class="st">"p1_o"</span>, <span class="at">names_to =</span> <span class="st">"card"</span>, <span class="at">values_to =</span> <span class="st">"optimal_prob"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> optimal_prob)) <span class="sc">+</span></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="at">bins =</span> <span class="dv">10</span>) <span class="sc">+</span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="at">rows =</span> <span class="fu">vars</span>(card))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 5510 rows containing non-finite values (`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="logistic-regression" class="level1">
+<h1>Logistic regression</h1>
+<p>(This task may be better to do in Python actually? Looking into GLM to do the transformation.)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb55"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>df_predictors <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy<span class="sc">==</span><span class="dv">0</span>, p2_spy<span class="sc">==</span><span class="dv">0</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>  p1_o0,p1_o1,p1_o2,p1_o3,p1_o4,p1_o5,p1_o6,p1_o7, <span class="co">#Outputs</span></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>  p1_c0,p1_c1,p1_c2,p1_c3,p1_c4,p1_c5,p1_c6,p1_c7, <span class="co">#Inputs</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>          p2_c0,p2_c1,p2_c2,p2_c3,p2_c4,p2_c5,p2_c6,p2_c7,</span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>          p1_wins,</span>
+<span id="cb55-8"><a href="#cb55-8" aria-hidden="true" tabindex="-1"></a>         p2_wins,</span>
+<span id="cb55-9"><a href="#cb55-9" aria-hidden="true" tabindex="-1"></a>         p1_general,p2_general,</span>
+<span id="cb55-10"><a href="#cb55-10" aria-hidden="true" tabindex="-1"></a>         <span class="co">#p1_spy,p2_spy,</span></span>
+<span id="cb55-11"><a href="#cb55-11" aria-hidden="true" tabindex="-1"></a>         p1_holds,p2_holds) <span class="sc">%&gt;%</span> </span>
+<span id="cb55-12"><a href="#cb55-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate_all</span>(<span class="sc">~</span><span class="fu">replace</span>(., <span class="fu">is.na</span>(.), <span class="dv">0</span>))</span>
+<span id="cb55-13"><a href="#cb55-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-14"><a href="#cb55-14" aria-hidden="true" tabindex="-1"></a><span class="co">#lin_reg_spec &lt;- logistic_reg() %&gt;%</span></span>
+<span id="cb55-15"><a href="#cb55-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">#set_mode("regression") %&gt;%</span></span>
+<span id="cb55-16"><a href="#cb55-16" aria-hidden="true" tabindex="-1"></a><span class="co">#  set_engine("lm")</span></span>
+<span id="cb55-17"><a href="#cb55-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-18"><a href="#cb55-18" aria-hidden="true" tabindex="-1"></a><span class="co">#ins_lm_fit &lt;- lin_reg_spec %&gt;%</span></span>
+<span id="cb55-19"><a href="#cb55-19" aria-hidden="true" tabindex="-1"></a><span class="co">#  fit(p1_o7 ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs</span></span>
+<span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a><span class="co">#          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+</span></span>
+<span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a><span class="co">#          p1_wins+</span></span>
+<span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a><span class="co">#         p2_wins+</span></span>
+<span id="cb55-23"><a href="#cb55-23" aria-hidden="true" tabindex="-1"></a><span class="co">#         p1_general+p2_general+</span></span>
+<span id="cb55-24"><a href="#cb55-24" aria-hidden="true" tabindex="-1"></a><span class="co">#         #p1_spy+p2_spy+</span></span>
+<span id="cb55-25"><a href="#cb55-25" aria-hidden="true" tabindex="-1"></a><span class="co">#         p1_holds+p2_holds, data = df_predictors) </span></span>
+<span id="cb55-26"><a href="#cb55-26" aria-hidden="true" tabindex="-1"></a><span class="co">#</span></span>
+<span id="cb55-27"><a href="#cb55-27" aria-hidden="true" tabindex="-1"></a><span class="co">#ins_lm_fit$fit$coefficients</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="spy-turns" class="level1">
+<h1>Spy turns</h1>
+<p>Given that card X is in hand and you’ve been spied, how often is card X optimal to play?</p>
+<p>This table is split by turn of game. Contrary to prior belief, card 0 is not the overwhelming preferrence even when it’s an option (&lt;50% until turn 5).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p2_spy<span class="sc">==</span><span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(turn) <span class="sc">%&gt;%</span> </span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(<span class="fu">c</span>(<span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>), <span class="sc">~</span><span class="fu">mean</span>(.x, <span class="at">na.rm=</span><span class="cn">TRUE</span>)))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 9
+   turn p1_o0  p1_o1 p1_o2 p1_o3 p1_o4 p1_o5  p1_o6  p1_o7
+  &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+1     2 0.4   0      0     0.2   0.2   0.333 0      0     
+2     3 0.298 0.0299 0.251 0.136 0.237 0.247 0.0942 0.0199
+3     4 0.398 0.203  0.336 0.152 0.163 0.198 0.120  0.0379
+4     5 0.589 0.410  0.359 0.181 0.118 0.210 0.136  0.0805
+5     6 0.741 0.643  0.450 0.273 0.166 0.259 0.156  0.171 
+6     7 0.879 0.834  0.652 0.490 0.344 0.426 0.309  0.305 
+7     8 1     1      1     1     1     1     1      1     </code></pre>
+</div>
+</div>
+<p>A manual survey of what cards are optimal during different turns.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb58"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a>spy_optimal_cards <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p2_spy<span class="sc">==</span><span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">#select(p1_cards, p2_cards, "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7", "p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7") %&gt;% </span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extracting the optimal card for each player</span></span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>( <span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>), <span class="at">names_to =</span> <span class="st">"p1_card"</span>, <span class="at">values_to =</span> <span class="st">"optimal_prob"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(optimal_prob<span class="sc">==</span><span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p1_card=</span><span class="fu">as.factor</span>(<span class="fu">substring</span>(p1_card,<span class="dv">5</span>,<span class="dv">6</span>))) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>optimal_prob) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="st">"p2_o0"</span>,<span class="st">"p2_o1"</span>,<span class="st">"p2_o2"</span>,<span class="st">"p2_o3"</span>,<span class="st">"p2_o4"</span>,<span class="st">"p2_o5"</span>,<span class="st">"p2_o6"</span>,<span class="st">"p2_o7"</span>), <span class="at">names_to =</span> <span class="st">"p2_card"</span>, <span class="at">values_to =</span> <span class="st">"optimal_prob"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(optimal_prob<span class="sc">==</span><span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p2_card=</span><span class="fu">as.factor</span>(<span class="fu">substring</span>(p2_card,<span class="dv">5</span>,<span class="dv">6</span>))) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>optimal_prob)</span>
+<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>spy_optimal_cards <span class="sc">%&gt;%</span> </span>
+<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(turn<span class="sc">&lt;=</span><span class="dv">3</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-16"><a href="#cb58-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(p1_cards, p2_cards,wins, generals, holds, p1_card, p2_card) <span class="sc">%&gt;%</span> </span>
+<span id="cb58-17"><a href="#cb58-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">sample_n</span>(<span class="dv">10</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 7
+   p1_cards p2_cards wins  generals holds p1_card p2_card
+   &lt;chr&gt;    &lt;chr&gt;    &lt;chr&gt; &lt;chr&gt;    &lt;chr&gt; &lt;fct&gt;   &lt;fct&gt;  
+ 1 012345   013457   20    00       00    4       3      
+ 2 123467   013457   01    00       11    3       1      
+ 3 013456   014567   20    00       00    4       4      
+ 4 012456   013567   20    00       00    2       0      
+ 5 124567   134567   00    00       22    5       7      
+ 6 023567   013567   22    00       00    2       5      
+ 7 123457   034567   20    10       00    5       7      
+ 8 012467   013457   02    00       00    0       5      
+ 9 023467   014567   11    00       00    4       6      
+10 234567   134567   00    00       22    5       6      </code></pre>
+</div>
+</div>
+<section id="decision-tree-for-spy-turns" class="level3">
+<h3 class="anchored" data-anchor-id="decision-tree-for-spy-turns">Decision tree for spy turns</h3>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'rpart'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:dials':
+
+    prune</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rpart.plot)</span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>tree_mod <span class="ot">&lt;-</span> <span class="fu">decision_tree</span>(<span class="at">mode =</span> <span class="st">"classification"</span>, <span class="at">tree_depth =</span> <span class="dv">4</span>, <span class="at">cost_complexity =</span> <span class="fu">double</span>(<span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"rpart"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>)</span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a>spy_recipe <span class="ot">=</span> <span class="fu">recipe</span>(p1_card <span class="sc">~</span> <span class="co">#p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information</span></span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a>          p2_c0<span class="sc">+</span>p2_c1<span class="sc">+</span>p2_c2<span class="sc">+</span>p2_c3<span class="sc">+</span>p2_c4<span class="sc">+</span>p2_c5<span class="sc">+</span>p2_c6<span class="sc">+</span>p2_c7<span class="sc">+</span></span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a>          p1_wins<span class="sc">+</span></span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a>         p2_wins<span class="sc">+</span></span>
+<span id="cb63-12"><a href="#cb63-12" aria-hidden="true" tabindex="-1"></a>         p1_general<span class="sc">+</span>p2_general<span class="sc">+</span></span>
+<span id="cb63-13"><a href="#cb63-13" aria-hidden="true" tabindex="-1"></a>         <span class="co">#p1_spy+p2_spy+</span></span>
+<span id="cb63-14"><a href="#cb63-14" aria-hidden="true" tabindex="-1"></a>         p1_holds<span class="sc">+</span>p2_holds, <span class="at">data =</span> spy_optimal_cards)</span>
+<span id="cb63-15"><a href="#cb63-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-16"><a href="#cb63-16" aria-hidden="true" tabindex="-1"></a>spy_wf <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb63-17"><a href="#cb63-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(spy_recipe) <span class="sc">%&gt;%</span></span>
+<span id="cb63-18"><a href="#cb63-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(tree_mod)</span>
+<span id="cb63-19"><a href="#cb63-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-20"><a href="#cb63-20" aria-hidden="true" tabindex="-1"></a>spy_fit <span class="ot">&lt;-</span> spy_wf <span class="sc">%&gt;%</span> <span class="fu">fit</span>(spy_optimal_cards)</span>
+<span id="cb63-21"><a href="#cb63-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-22"><a href="#cb63-22" aria-hidden="true" tabindex="-1"></a>tree_fitted <span class="ot">&lt;-</span> spy_fit <span class="sc">%&gt;%</span> </span>
+<span id="cb63-23"><a href="#cb63-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">extract_fit_parsnip</span>()</span>
+<span id="cb63-24"><a href="#cb63-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-25"><a href="#cb63-25" aria-hidden="true" tabindex="-1"></a>tree_fitted</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>parsnip model object
+
+n= 79700 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 79700 60163 1 (0.12 0.25 0.2 0.12 0.058 0.12 0.065 0.068)  
+   2) p1_holds&lt; 0.5 26256 18406 0 (0.3 0.14 0.18 0.091 0.075 0.14 0.052 0.027)  
+     4) p2_wins&gt;=2.5 12261  7474 0 (0.39 0.2 0.13 0.06 0.031 0.11 0.027 0.044)  
+       8) p1_general&lt; 0.5 8497  4994 0 (0.41 0.21 0.14 0.069 0.025 0.057 0.038 0.043) *
+       9) p1_general&gt;=0.5 3764  2480 0 (0.34 0.19 0.1 0.039 0.043 0.24 0 0.045)  
+        18) p1_wins&lt; 2.5 2305  1407 0 (0.39 0.21 0.11 0.04 0.048 0.18 0 0.016) *
+        19) p1_wins&gt;=2.5 1459   978 5 (0.26 0.16 0.087 0.038 0.034 0.33 0 0.09) *
+     5) p2_wins&lt; 2.5 13995 10932 0 (0.22 0.084 0.22 0.12 0.11 0.16 0.075 0.012)  
+      10) p1_general&lt; 0.5 9418  7284 0 (0.23 0.085 0.2 0.15 0.11 0.11 0.11 0.0055)  
+        20) p2_wins&gt;=1.5 6438  4767 0 (0.26 0.094 0.14 0.16 0.1 0.12 0.12 0.0075) *
+        21) p2_wins&lt; 1.5 2980  1985 2 (0.16 0.066 0.33 0.13 0.14 0.082 0.097 0.0013) *
+      11) p1_general&gt;=0.5 4577  3355 5 (0.2 0.081 0.25 0.061 0.11 0.27 0 0.025)  
+        22) p2_c6&lt; 0.5 2125  1502 2 (0.23 0.06 0.29 0.098 0.14 0.17 0 0.022) *
+        23) p2_c6&gt;=0.5 2452  1581 5 (0.18 0.1 0.21 0.029 0.096 0.36 0 0.027) *
+   3) p1_holds&gt;=0.5 53444 37584 1 (0.029 0.3 0.22 0.13 0.05 0.12 0.072 0.088)  
+     6) p2_c1&gt;=0.5 23174 15104 1 (0.04 0.35 0.23 0.11 0.045 0.14 0.089 0.0021)  
+      12) p2_c7&gt;=0.5 9772  5925 1 (0.052 0.39 0.29 0.13 0.047 0.053 0.028 0) *
+      13) p2_c7&lt; 0.5 13402  9179 1 (0.031 0.32 0.18 0.098 0.043 0.2 0.13 0.0037)  
+        26) p2_c6&gt;=0.5 4578  2630 1 (0 0.43 0.21 0.12 0.037 0.034 0.17 0) *
+        27) p2_c6&lt; 0.5 8824  6338 5 (0.047 0.26 0.16 0.087 0.046 0.28 0.11 0.0056) *
+     7) p2_c1&lt; 0.5 30270 22480 1 (0.021 0.26 0.21 0.14 0.054 0.1 0.058 0.15)  
+      14) p2_c0&gt;=0.5 12659  9516 1 (0.031 0.25 0.23 0.16 0.054 0.13 0.076 0.069)  
+        28) p2_c7&gt;=0.5 5441  3810 2 (0.042 0.23 0.3 0.16 0.068 0.061 0.033 0.1) *
+        29) p2_c7&lt; 0.5 7218  5318 1 (0.023 0.26 0.18 0.16 0.044 0.18 0.11 0.044) *
+      15) p2_c0&lt; 0.5 17611 12964 1 (0.014 0.26 0.19 0.13 0.055 0.084 0.046 0.22)  
+        30) p2_c7&gt;=0.5 9403  6583 1 (0.021 0.3 0.22 0.12 0.063 0.044 0.023 0.2) *
+        31) p2_c7&lt; 0.5 8208  6327 7 (0.0068 0.22 0.16 0.14 0.045 0.13 0.072 0.23) *</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb65"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(tree_fitted<span class="sc">$</span>fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+To silence this warning:
+    Call rpart.plot with roundint=FALSE,
+    or rebuild the rpart model with model=TRUE.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="analysis-of-viability" class="level1">
+<h1>Analysis of viability</h1>
+<p>In this section I use decision trees to see how easy it is to tell whether a card is “viable” in a certain situation or not. A card is “viable” if the optimal probability to play it is above 0.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb67"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="co"># This dataset looks card-by-card whether each card is viable in a particular gamestate.</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="co"># The idea is that if it's simple to tell which cards are viable, we can more easily figure out the play patterns that will work</span></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>card_viability <span class="ot">&lt;-</span> allTurns <span class="sc">%&gt;%</span> </span>
+<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p2_spy<span class="sc">==</span><span class="cn">FALSE</span>, turn <span class="sc">&lt;</span><span class="dv">8</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Extracting the optimal card for each player</span></span>
+<span id="cb67-7"><a href="#cb67-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>( <span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>), <span class="at">names_to =</span> <span class="st">"p1_card"</span>, <span class="at">values_to =</span> <span class="st">"p1_optimal_prob"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb67-8"><a href="#cb67-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(p1_optimal_prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb67-9"><a href="#cb67-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p1_card=</span><span class="fu">as.factor</span>(<span class="fu">substring</span>(p1_card,<span class="dv">5</span>,<span class="dv">6</span>)),</span>
+<span id="cb67-10"><a href="#cb67-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">p1_card_viable =</span> <span class="fu">ifelse</span>(p1_optimal_prob<span class="sc">&gt;</span><span class="dv">0</span>,<span class="st">"viable"</span>,<span class="st">"not viable"</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb67-11"><a href="#cb67-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="st">"p2_o0"</span>,<span class="st">"p2_o1"</span>,<span class="st">"p2_o2"</span>,<span class="st">"p2_o3"</span>,<span class="st">"p2_o4"</span>,<span class="st">"p2_o5"</span>,<span class="st">"p2_o6"</span>,<span class="st">"p2_o7"</span>), <span class="at">names_to =</span> <span class="st">"p2_card"</span>, <span class="at">values_to =</span> <span class="st">"p2_optimal_prob"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb67-12"><a href="#cb67-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(p2_optimal_prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb67-13"><a href="#cb67-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">p2_card=</span><span class="fu">as.factor</span>(<span class="fu">substring</span>(p2_card,<span class="dv">5</span>,<span class="dv">6</span>)),</span>
+<span id="cb67-14"><a href="#cb67-14" aria-hidden="true" tabindex="-1"></a>         <span class="at">p2_card_viable =</span> <span class="fu">ifelse</span>(p2_optimal_prob<span class="sc">&gt;</span><span class="dv">0</span>,<span class="st">"viable"</span>,<span class="st">"not viable"</span>))</span>
+<span id="cb67-15"><a href="#cb67-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-16"><a href="#cb67-16" aria-hidden="true" tabindex="-1"></a><span class="co"># card_viability %&gt;% sample_n(10)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We’ll make a tree for each card (I’ll just do a few for now to illustrate).</p>
+<p>For card 0 (musician)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a>card_of_interest <span class="ot">=</span> <span class="dv">0</span> <span class="co"># Doing each card's tree 1 at a time</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>tree_mod <span class="ot">&lt;-</span> <span class="fu">decision_tree</span>(<span class="at">mode =</span> <span class="st">"classification"</span>, <span class="at">tree_depth =</span> <span class="dv">3</span>, <span class="at">cost_complexity =</span> <span class="fu">double</span>(<span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"rpart"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>)</span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-7"><a href="#cb68-7" aria-hidden="true" tabindex="-1"></a>spy_recipe <span class="ot">=</span> <span class="fu">recipe</span>(p1_card_viable <span class="sc">~</span> <span class="co">#p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information</span></span>
+<span id="cb68-8"><a href="#cb68-8" aria-hidden="true" tabindex="-1"></a>          p2_c0<span class="sc">+</span>p2_c1<span class="sc">+</span>p2_c2<span class="sc">+</span>p2_c3<span class="sc">+</span>p2_c4<span class="sc">+</span>p2_c5<span class="sc">+</span>p2_c6<span class="sc">+</span>p2_c7<span class="sc">+</span></span>
+<span id="cb68-9"><a href="#cb68-9" aria-hidden="true" tabindex="-1"></a>          p1_wins<span class="sc">+</span></span>
+<span id="cb68-10"><a href="#cb68-10" aria-hidden="true" tabindex="-1"></a>         p2_wins<span class="sc">+</span></span>
+<span id="cb68-11"><a href="#cb68-11" aria-hidden="true" tabindex="-1"></a>         p1_general<span class="sc">+</span>p2_general<span class="sc">+</span></span>
+<span id="cb68-12"><a href="#cb68-12" aria-hidden="true" tabindex="-1"></a>         <span class="co">#p1_spy+p2_spy+</span></span>
+<span id="cb68-13"><a href="#cb68-13" aria-hidden="true" tabindex="-1"></a>         p1_holds<span class="sc">+</span>p2_holds, <span class="at">data =</span> card_viability)</span>
+<span id="cb68-14"><a href="#cb68-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-15"><a href="#cb68-15" aria-hidden="true" tabindex="-1"></a>spy_wf <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb68-16"><a href="#cb68-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(spy_recipe) <span class="sc">%&gt;%</span></span>
+<span id="cb68-17"><a href="#cb68-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(tree_mod)</span>
+<span id="cb68-18"><a href="#cb68-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-19"><a href="#cb68-19" aria-hidden="true" tabindex="-1"></a>spy_fit <span class="ot">&lt;-</span> spy_wf <span class="sc">%&gt;%</span> <span class="fu">fit</span>(card_viability <span class="sc">%&gt;%</span> <span class="fu">filter</span>(p1_card<span class="sc">==</span>card_of_interest))</span>
+<span id="cb68-20"><a href="#cb68-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-21"><a href="#cb68-21" aria-hidden="true" tabindex="-1"></a>tree_fitted <span class="ot">&lt;-</span> spy_fit <span class="sc">%&gt;%</span> </span>
+<span id="cb68-22"><a href="#cb68-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">extract_fit_parsnip</span>()</span>
+<span id="cb68-23"><a href="#cb68-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-24"><a href="#cb68-24" aria-hidden="true" tabindex="-1"></a>tree_fitted</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>parsnip model object
+
+n= 577396 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+1) root 577396 226705 viable (0.3926335 0.6073665)  
+  2) p2_wins&lt; 2.5 427406 190880 viable (0.4466011 0.5533989)  
+    4) p1_holds&lt; 1.5 235143 104271 not viable (0.5565635 0.4434365)  
+      8) p2_c7&gt;=0.5 133910  47231 not viable (0.6472930 0.3527070) *
+      9) p2_c7&lt; 0.5 101233  44193 viable (0.4365474 0.5634526) *
+    5) p1_holds&gt;=1.5 192263  60008 viable (0.3121141 0.6878859) *
+  3) p2_wins&gt;=2.5 149990  35825 viable (0.2388493 0.7611507) *</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb70"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(tree_fitted<span class="sc">$</span>fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+To silence this warning:
+    Call rpart.plot with roundint=FALSE,
+    or rebuild the rpart model with model=TRUE.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>For princess (1)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb72"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a>card_of_interest <span class="ot">=</span> <span class="dv">1</span> <span class="co"># Doing each card's tree 1 at a time</span></span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>tree_mod <span class="ot">&lt;-</span> <span class="fu">decision_tree</span>(<span class="at">mode =</span> <span class="st">"classification"</span>, <span class="at">tree_depth =</span> <span class="dv">4</span>, <span class="at">cost_complexity =</span> <span class="fu">double</span>(<span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"rpart"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>)</span>
+<span id="cb72-6"><a href="#cb72-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-7"><a href="#cb72-7" aria-hidden="true" tabindex="-1"></a>spy_recipe <span class="ot">=</span> <span class="fu">recipe</span>(p1_card_viable <span class="sc">~</span> <span class="co">#p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information</span></span>
+<span id="cb72-8"><a href="#cb72-8" aria-hidden="true" tabindex="-1"></a>          p2_c0<span class="sc">+</span>p2_c1<span class="sc">+</span>p2_c2<span class="sc">+</span>p2_c3<span class="sc">+</span>p2_c4<span class="sc">+</span>p2_c5<span class="sc">+</span>p2_c6<span class="sc">+</span>p2_c7<span class="sc">+</span></span>
+<span id="cb72-9"><a href="#cb72-9" aria-hidden="true" tabindex="-1"></a>          p1_wins<span class="sc">+</span></span>
+<span id="cb72-10"><a href="#cb72-10" aria-hidden="true" tabindex="-1"></a>         p2_wins<span class="sc">+</span></span>
+<span id="cb72-11"><a href="#cb72-11" aria-hidden="true" tabindex="-1"></a>         p1_general<span class="sc">+</span>p2_general<span class="sc">+</span></span>
+<span id="cb72-12"><a href="#cb72-12" aria-hidden="true" tabindex="-1"></a>         <span class="co">#p1_spy+p2_spy+</span></span>
+<span id="cb72-13"><a href="#cb72-13" aria-hidden="true" tabindex="-1"></a>         p1_holds<span class="sc">+</span>p2_holds, <span class="at">data =</span> card_viability)</span>
+<span id="cb72-14"><a href="#cb72-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-15"><a href="#cb72-15" aria-hidden="true" tabindex="-1"></a>spy_wf <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb72-16"><a href="#cb72-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(spy_recipe) <span class="sc">%&gt;%</span></span>
+<span id="cb72-17"><a href="#cb72-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(tree_mod)</span>
+<span id="cb72-18"><a href="#cb72-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-19"><a href="#cb72-19" aria-hidden="true" tabindex="-1"></a>spy_fit <span class="ot">&lt;-</span> spy_wf <span class="sc">%&gt;%</span> <span class="fu">fit</span>(card_viability <span class="sc">%&gt;%</span> <span class="fu">filter</span>(p1_card<span class="sc">==</span>card_of_interest))</span>
+<span id="cb72-20"><a href="#cb72-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-21"><a href="#cb72-21" aria-hidden="true" tabindex="-1"></a>tree_fitted <span class="ot">&lt;-</span> spy_fit <span class="sc">%&gt;%</span> </span>
+<span id="cb72-22"><a href="#cb72-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">extract_fit_parsnip</span>()</span>
+<span id="cb72-23"><a href="#cb72-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-24"><a href="#cb72-24" aria-hidden="true" tabindex="-1"></a>tree_fitted</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>parsnip model object
+
+n= 718004 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 718004 341264 viable (0.4752954 0.5247046)  
+   2) p2_c7&lt; 0.5 367674 161551 not viable (0.5606135 0.4393865)  
+     4) p2_c2&gt;=0.5 204489  80018 not viable (0.6086929 0.3913071) *
+     5) p2_c2&lt; 0.5 163185  81533 not viable (0.5003646 0.4996354)  
+      10) p2_c5&gt;=0.5 102480  46147 not viable (0.5496975 0.4503025)  
+        20) p2_general&lt; 0.5 86998  37568 not viable (0.5681740 0.4318260) *
+        21) p2_general&gt;=0.5 15482   6903 viable (0.4458726 0.5541274) *
+      11) p2_c5&lt; 0.5 60705  25319 viable (0.4170826 0.5829174) *
+   3) p2_c7&gt;=0.5 350330 135141 viable (0.3857534 0.6142466)  
+     6) p1_holds&lt; 0.5 110477  51195 not viable (0.5366004 0.4633996)  
+      12) p2_wins&lt; 2.5 73093  30445 not viable (0.5834758 0.4165242) *
+      13) p2_wins&gt;=2.5 37384  16634 viable (0.4449497 0.5550503) *
+     7) p1_holds&gt;=0.5 239853  75859 viable (0.3162729 0.6837271) *</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb74"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(tree_fitted<span class="sc">$</span>fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+To silence this warning:
+    Call rpart.plot with roundint=FALSE,
+    or rebuild the rpart model with model=TRUE.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-24-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>For card 7 (Prince)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb76"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb76-1"><a href="#cb76-1" aria-hidden="true" tabindex="-1"></a>card_of_interest <span class="ot">=</span> <span class="dv">7</span> <span class="co"># Doing each card's tree 1 at a time</span></span>
+<span id="cb76-2"><a href="#cb76-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-3"><a href="#cb76-3" aria-hidden="true" tabindex="-1"></a>tree_mod <span class="ot">&lt;-</span> <span class="fu">decision_tree</span>(<span class="at">mode =</span> <span class="st">"classification"</span>, <span class="at">tree_depth =</span> <span class="dv">4</span>, <span class="at">cost_complexity =</span> <span class="fu">double</span>(<span class="dv">1</span>)) <span class="sc">%&gt;%</span></span>
+<span id="cb76-4"><a href="#cb76-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_engine</span>(<span class="st">"rpart"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb76-5"><a href="#cb76-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">set_mode</span>(<span class="st">"classification"</span>)</span>
+<span id="cb76-6"><a href="#cb76-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-7"><a href="#cb76-7" aria-hidden="true" tabindex="-1"></a>spy_recipe <span class="ot">=</span> <span class="fu">recipe</span>(p1_card_viable <span class="sc">~</span> <span class="co">#p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information</span></span>
+<span id="cb76-8"><a href="#cb76-8" aria-hidden="true" tabindex="-1"></a>          p2_c0<span class="sc">+</span>p2_c1<span class="sc">+</span>p2_c2<span class="sc">+</span>p2_c3<span class="sc">+</span>p2_c4<span class="sc">+</span>p2_c5<span class="sc">+</span>p2_c6<span class="sc">+</span>p2_c7<span class="sc">+</span></span>
+<span id="cb76-9"><a href="#cb76-9" aria-hidden="true" tabindex="-1"></a>          p1_wins<span class="sc">+</span></span>
+<span id="cb76-10"><a href="#cb76-10" aria-hidden="true" tabindex="-1"></a>         p2_wins<span class="sc">+</span></span>
+<span id="cb76-11"><a href="#cb76-11" aria-hidden="true" tabindex="-1"></a>         p1_general<span class="sc">+</span>p2_general<span class="sc">+</span></span>
+<span id="cb76-12"><a href="#cb76-12" aria-hidden="true" tabindex="-1"></a>         <span class="co">#p1_spy+p2_spy+</span></span>
+<span id="cb76-13"><a href="#cb76-13" aria-hidden="true" tabindex="-1"></a>         p1_holds<span class="sc">+</span>p2_holds, <span class="at">data =</span> card_viability)</span>
+<span id="cb76-14"><a href="#cb76-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-15"><a href="#cb76-15" aria-hidden="true" tabindex="-1"></a>spy_wf <span class="ot">=</span> <span class="fu">workflow</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb76-16"><a href="#cb76-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_recipe</span>(spy_recipe) <span class="sc">%&gt;%</span></span>
+<span id="cb76-17"><a href="#cb76-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_model</span>(tree_mod)</span>
+<span id="cb76-18"><a href="#cb76-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-19"><a href="#cb76-19" aria-hidden="true" tabindex="-1"></a>spy_fit <span class="ot">&lt;-</span> spy_wf <span class="sc">%&gt;%</span> <span class="fu">fit</span>(card_viability <span class="sc">%&gt;%</span> <span class="fu">filter</span>(p1_card<span class="sc">==</span>card_of_interest))</span>
+<span id="cb76-20"><a href="#cb76-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-21"><a href="#cb76-21" aria-hidden="true" tabindex="-1"></a>tree_fitted <span class="ot">&lt;-</span> spy_fit <span class="sc">%&gt;%</span> </span>
+<span id="cb76-22"><a href="#cb76-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">extract_fit_parsnip</span>()</span>
+<span id="cb76-23"><a href="#cb76-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb76-24"><a href="#cb76-24" aria-hidden="true" tabindex="-1"></a>tree_fitted</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>parsnip model object
+
+n= 722469 
+
+node), split, n, loss, yval, (yprob)
+      * denotes terminal node
+
+ 1) root 722469 341660 viable (0.4729061 0.5270939)  
+   2) p1_holds&lt; 0.5 213223  77068 not viable (0.6385568 0.3614432)  
+     4) p2_c1&lt; 0.5 103721  30166 not viable (0.7091621 0.2908379) *
+     5) p2_c1&gt;=0.5 109502  46902 not viable (0.5716791 0.4283209)  
+      10) p2_general&gt;=0.5 27677   9002 not viable (0.6747480 0.3252520) *
+      11) p2_general&lt; 0.5 81825  37900 not viable (0.5368164 0.4631836)  
+        22) p2_c7&lt; 0.5 43314  17977 not viable (0.5849610 0.4150390) *
+        23) p2_c7&gt;=0.5 38511  18588 viable (0.4826673 0.5173327) *
+   3) p1_holds&gt;=0.5 509246 205505 viable (0.4035476 0.5964524)  
+     6) p2_general&gt;=0.5 69981  29213 not viable (0.5825581 0.4174419)  
+      12) p2_c5&lt; 0.5 34220   7726 not viable (0.7742256 0.2257744) *
+      13) p2_c5&gt;=0.5 35761  14274 viable (0.3991499 0.6008501)  
+        26) p2_c7&gt;=0.5 16644   6553 not viable (0.6062845 0.3937155) *
+        27) p2_c7&lt; 0.5 19117   4183 viable (0.2188105 0.7811895) *
+     7) p2_general&lt; 0.5 439265 164737 viable (0.3750287 0.6249713) *</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb78"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb78-1"><a href="#cb78-1" aria-hidden="true" tabindex="-1"></a><span class="fu">rpart.plot</span>(tree_fitted<span class="sc">$</span>fit)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Cannot retrieve the data used to build the model (so cannot determine roundint and is.binary for the variables).
+To silence this warning:
+    Call rpart.plot with roundint=FALSE,
+    or rebuild the rpart model with model=TRUE.</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-25-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="human-conformity-to-optimal" class="level1">
+<h1>Human conformity to optimal</h1>
+<p>In this section, we’re looking at every card a player had the option to play, the optimal probability to play it, and whether they played it.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb80"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb80-1"><a href="#cb80-1" aria-hidden="true" tabindex="-1"></a>played_vs_optimal <span class="ot">&lt;-</span> joined_human_ai <span class="sc">%&gt;%</span> </span>
+<span id="cb80-2"><a href="#cb80-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">c</span>(<span class="st">"p1_o0"</span>,<span class="st">"p1_o1"</span>,<span class="st">"p1_o2"</span>,<span class="st">"p1_o3"</span>,<span class="st">"p1_o4"</span>,<span class="st">"p1_o5"</span>,<span class="st">"p1_o6"</span>,<span class="st">"p1_o7"</span>), <span class="at">names_to =</span> <span class="st">"card_untrimmed"</span>, <span class="at">values_to =</span> <span class="st">"optimal_prob"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb80-3"><a href="#cb80-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">this_card =</span> <span class="fu">substring</span>(card_untrimmed, <span class="dv">5</span>,<span class="dv">6</span>),</span>
+<span id="cb80-4"><a href="#cb80-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">this_card_played =</span> <span class="fu">if_else</span>(P1<span class="sc">==</span>this_card, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb80-5"><a href="#cb80-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(Game, turn, p1_name, this_card, this_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy) <span class="sc">%&gt;%</span> </span>
+<span id="cb80-6"><a href="#cb80-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(optimal_prob)) <span class="co"># Removing invalid cards</span></span>
+<span id="cb80-7"><a href="#cb80-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb80-8"><a href="#cb80-8" aria-hidden="true" tabindex="-1"></a>played_vs_optimal <span class="sc">%&gt;%</span> <span class="fu">sample_n</span>(<span class="dv">8</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 9
+   Game  turn p1_name    this_card this_card_pla…¹ optim…² games…³ p1_spy p2_spy
+  &lt;int&gt; &lt;dbl&gt; &lt;chr&gt;      &lt;chr&gt;               &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;   &lt;lgl&gt;  &lt;lgl&gt; 
+1   117     4 "Chris"    4                       0  0.426  p1-014… FALSE  FALSE 
+2    12     3 "William " 3                       1  1      p1-013… FALSE  TRUE  
+3     4     1 "William " 7                       0  0.0452 p1-012… FALSE  FALSE 
+4    46     1 "William " 2                       1  0.222  p1-012… FALSE  FALSE 
+5    36     1 "William " 6                       0  0      p1-012… FALSE  FALSE 
+6    98     4 "William " 1                       1  0.911  p1-013… FALSE  FALSE 
+7    70     1 "Sean"     7                       0  0.0452 p1-012… FALSE  FALSE 
+8    75     1 "William " 6                       0  0      p1-012… FALSE  FALSE 
+# … with abbreviated variable names ¹​this_card_played, ²​optimal_prob,
+#   ³​gamestate_str</code></pre>
+</div>
+</div>
+<section id="absolute-mistakes" class="level2">
+<h2 class="anchored" data-anchor-id="absolute-mistakes">Absolute mistakes</h2>
+<p>“Absolute mistake” = playing a card with optimal probability of 0. These plays are against theory, but may still be beneficial if you have a confident prediction about your opponent’s choice.</p>
+<p>Which cards are most often played when they shouldn’t have?</p>
+<p>Counts of all absolute mistakes made by card</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb82"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb82-1"><a href="#cb82-1" aria-hidden="true" tabindex="-1"></a>played_vs_optimal <span class="sc">%&gt;%</span> </span>
+<span id="cb82-2"><a href="#cb82-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy <span class="sc">==</span> <span class="cn">FALSE</span> <span class="sc">&amp;</span> p2_spy <span class="sc">==</span> <span class="cn">FALSE</span>, optimal_prob <span class="sc">==</span> <span class="dv">0</span>, this_card_played <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb82-3"><a href="#cb82-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(this_card) <span class="sc">%&gt;%</span> <span class="co">#, turn</span></span>
+<span id="cb82-4"><a href="#cb82-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n_mistakes =</span> <span class="fu">n</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 8 × 2
+  this_card n_mistakes
+  &lt;chr&gt;          &lt;int&gt;
+1 0                 16
+2 1                 15
+3 2                  8
+4 3                  7
+5 4                  9
+6 5                 14
+7 6                 33
+8 7                  3</code></pre>
+</div>
+</div>
+<p>Turn-by-turn view: Column = card, row = turn of game. The most common “absolute mistakes” are playing the 6 card on turn 1, the 0 card on turn 3, and the 1 card on turn 5.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb84"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb84-1"><a href="#cb84-1" aria-hidden="true" tabindex="-1"></a>played_vs_optimal <span class="sc">%&gt;%</span> </span>
+<span id="cb84-2"><a href="#cb84-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy <span class="sc">==</span> <span class="cn">FALSE</span> <span class="sc">&amp;</span> p2_spy <span class="sc">==</span> <span class="cn">FALSE</span>, optimal_prob <span class="sc">==</span> <span class="dv">0</span>, this_card_played <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb84-3"><a href="#cb84-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(this_card, turn) <span class="sc">%&gt;%</span> <span class="co">#</span></span>
+<span id="cb84-4"><a href="#cb84-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n_mistakes =</span> <span class="fu">n</span>()) <span class="sc">%&gt;%</span> </span>
+<span id="cb84-5"><a href="#cb84-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> this_card, <span class="at">values_from =</span> n_mistakes, <span class="at">id_cols =</span> turn)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'this_card'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 9
+   turn   `0`   `1`   `2`   `3`   `4`   `5`   `6`   `7`
+  &lt;dbl&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;
+1     1     5     2    NA    NA    NA    NA    20    NA
+2     2     3     3     3    NA     4     3     5     2
+3     3     5     2     1     3     1     6     4    NA
+4     4     2     3     2     2     1    NA     2    NA
+5     5     1     4     2     1     1     4    NA    NA
+6     6    NA     1    NA    NA     1    NA     2     1
+7     7    NA    NA    NA     1     1     1    NA    NA</code></pre>
+</div>
+</div>
+<section id="error-rates-by-player" class="level3">
+<h3 class="anchored" data-anchor-id="error-rates-by-player">Error rates by player</h3>
+<section id="non-spy-turns" class="level4">
+<h4 class="anchored" data-anchor-id="non-spy-turns">Non-spy turns</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb87"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb87-1"><a href="#cb87-1" aria-hidden="true" tabindex="-1"></a>played_vs_optimal <span class="sc">%&gt;%</span> </span>
+<span id="cb87-2"><a href="#cb87-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(this_card_played <span class="sc">==</span> <span class="dv">1</span>, <span class="sc">!</span><span class="fu">is.na</span>(optimal_prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb87-3"><a href="#cb87-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy <span class="sc">==</span> <span class="cn">FALSE</span> <span class="sc">&amp;</span> p2_spy <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb87-4"><a href="#cb87-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">absolute_mistake =</span> <span class="fu">if_else</span>(this_card_played <span class="sc">==</span> <span class="dv">1</span> <span class="sc">&amp;</span> optimal_prob <span class="sc">==</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb87-5"><a href="#cb87-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(p1_name) <span class="sc">%&gt;%</span> </span>
+<span id="cb87-6"><a href="#cb87-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">total_mistakes =</span> <span class="fu">sum</span>(absolute_mistake),</span>
+<span id="cb87-7"><a href="#cb87-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">total_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb87-8"><a href="#cb87-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">mistake_ratio =</span> <span class="fu">mean</span>(absolute_mistake)) <span class="sc">%&gt;%</span> </span>
+<span id="cb87-9"><a href="#cb87-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="sc">-</span>total_plays)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 11 × 4
+   p1_name     total_mistakes total_plays mistake_ratio
+   &lt;chr&gt;                &lt;dbl&gt;       &lt;int&gt;         &lt;dbl&gt;
+ 1 "William "              33         246        0.134 
+ 2 "Sean"                  23          74        0.311 
+ 3 "Kiran"                 14          54        0.259 
+ 4 "Michael"               16          54        0.296 
+ 5 "Chris"                  7          31        0.226 
+ 6 "Daniel"                 2          22        0.0909
+ 7 "Chanel"                 3          19        0.158 
+ 8 "Amanda"                 3          13        0.231 
+ 9 "Jake"                   3          12        0.25  
+10 "Carson"                 1           3        0.333 
+11 "Katherine"              0           2        0     </code></pre>
+</div>
+</div>
+</section>
+<section id="spy-turns-1" class="level4">
+<h4 class="anchored" data-anchor-id="spy-turns-1">Spy turns</h4>
+<p>Spy turn errors p1_spy = p1 used spy, so p2 chooses second p2_spy = p2 used spy, so p2 chooses first</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb89"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb89-1"><a href="#cb89-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Pivot to a longer form with player_spied describing which player was spied</span></span>
+<span id="cb89-2"><a href="#cb89-2" aria-hidden="true" tabindex="-1"></a>played_vs_optimal <span class="sc">%&gt;%</span> </span>
+<span id="cb89-3"><a href="#cb89-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(this_card_played <span class="sc">==</span> <span class="dv">1</span>, <span class="sc">!</span><span class="fu">is.na</span>(optimal_prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb89-4"><a href="#cb89-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy <span class="sc">==</span> <span class="cn">TRUE</span> <span class="sc">|</span> p2_spy <span class="sc">==</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb89-5"><a href="#cb89-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">c</span>(p1_spy, p2_spy), <span class="at">names_to =</span> <span class="st">"player_spied"</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb89-6"><a href="#cb89-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(value <span class="sc">==</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="sc">-</span>value) <span class="sc">%&gt;%</span></span>
+<span id="cb89-7"><a href="#cb89-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">absolute_mistake =</span> <span class="fu">if_else</span>(this_card_played <span class="sc">==</span> <span class="dv">1</span> <span class="sc">&amp;</span> optimal_prob <span class="sc">==</span> <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb89-8"><a href="#cb89-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(p1_name, player_spied) <span class="sc">%&gt;%</span> </span>
+<span id="cb89-9"><a href="#cb89-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">total_mistakes =</span> <span class="fu">sum</span>(absolute_mistake),</span>
+<span id="cb89-10"><a href="#cb89-10" aria-hidden="true" tabindex="-1"></a>            <span class="at">total_plays =</span> <span class="fu">n</span>(),</span>
+<span id="cb89-11"><a href="#cb89-11" aria-hidden="true" tabindex="-1"></a>            <span class="at">mistake_ratio =</span> <span class="fu">mean</span>(absolute_mistake)) <span class="sc">%&gt;%</span> </span>
+<span id="cb89-12"><a href="#cb89-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="sc">-</span>total_plays, player_spied) <span class="sc">%&gt;%</span> <span class="fu">head</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'p1_name'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 5
+# Groups:   p1_name [3]
+  p1_name    player_spied total_mistakes total_plays mistake_ratio
+  &lt;chr&gt;      &lt;chr&gt;                 &lt;dbl&gt;       &lt;int&gt;         &lt;dbl&gt;
+1 "William " p1_spy                   39          47         0.830
+2 "William " p2_spy                   23          37         0.622
+3 "Kiran"    p2_spy                    7          12         0.583
+4 "Sean"     p1_spy                    9          11         0.818
+5 "Sean"     p2_spy                    9          11         0.818
+6 "Kiran"    p1_spy                   10          10         1    </code></pre>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="non-absolute-errors" class="level2">
+<h2 class="anchored" data-anchor-id="non-absolute-errors">Non-absolute errors</h2>
+<section id="overall-proportions-played-by-bucket." class="level4">
+<h4 class="anchored" data-anchor-id="overall-proportions-played-by-bucket.">Overall proportions played by bucket.</h4>
+<p>Here, we put a player’s options into “buckets” based on how often they should optimally play it.</p>
+<p>It’s less difficult than anticipated to detect these differences, with players playing cards in the “0%” bucket ~10% of the time there’s an opportunity to do so. They only play cards in the “100%” bucket 57% of the time. I’ve included the “bias_proportion” variable as the difference between the proportion played and center of the bucket. The lowest 2 buckets are over-played an the rest are under-played (more severely as the probability increases).</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb92"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb92-1"><a href="#cb92-1" aria-hidden="true" tabindex="-1"></a>prob_buckets <span class="ot">&lt;-</span> played_vs_optimal <span class="sc">%&gt;%</span> </span>
+<span id="cb92-2"><a href="#cb92-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(p1_spy <span class="sc">==</span> <span class="cn">FALSE</span> <span class="sc">&amp;</span> p2_spy <span class="sc">==</span> <span class="cn">FALSE</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb92-3"><a href="#cb92-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob_bucket =</span> <span class="fu">if_else</span>(optimal_prob <span class="sc">==</span> <span class="dv">0</span> <span class="sc">|</span> optimal_prob <span class="sc">==</span> <span class="dv">1</span>, optimal_prob, <span class="fu">round</span>(optimal_prob<span class="sc">*</span><span class="dv">9</span>)<span class="sc">/</span><span class="dv">9</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb92-4"><a href="#cb92-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(prob_bucket) <span class="sc">%&gt;%</span> </span>
+<span id="cb92-5"><a href="#cb92-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n_played =</span> <span class="fu">sum</span>(this_card_played),</span>
+<span id="cb92-6"><a href="#cb92-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">n_opportunities =</span> <span class="fu">n</span>(),</span>
+<span id="cb92-7"><a href="#cb92-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">prop_played =</span> <span class="fu">mean</span>(this_card_played),</span>
+<span id="cb92-8"><a href="#cb92-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">avg_prop_in_bucket =</span> <span class="fu">mean</span>(optimal_prob)) <span class="sc">%&gt;%</span> </span>
+<span id="cb92-9"><a href="#cb92-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">bias_proportion =</span> prop_played <span class="sc">-</span> avg_prop_in_bucket)</span>
+<span id="cb92-10"><a href="#cb92-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb92-11"><a href="#cb92-11" aria-hidden="true" tabindex="-1"></a>prob_buckets</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 10 × 6
+   prob_bucket n_played n_opportunities prop_played avg_prop_in_bucket bias_pr…¹
+         &lt;dbl&gt;    &lt;dbl&gt;           &lt;int&gt;       &lt;dbl&gt;              &lt;dbl&gt;     &lt;dbl&gt;
+ 1       0          123            1749      0.0703            0.00779    0.0625
+ 2       0.111       32             204      0.157             0.110      0.0469
+ 3       0.222      255            1189      0.214             0.236     -0.0211
+ 4       0.333       41             215      0.191             0.332     -0.141 
+ 5       0.444       31             105      0.295             0.445     -0.150 
+ 6       0.556        7              36      0.194             0.545     -0.351 
+ 7       0.667        7              18      0.389             0.659     -0.270 
+ 8       0.778        1               5      0.2               0.788     -0.588 
+ 9       0.889        2               5      0.4               0.875     -0.475 
+10       1           31              56      0.554             0.998     -0.445 
+# … with abbreviated variable name ¹​bias_proportion</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb94"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb94-1"><a href="#cb94-1" aria-hidden="true" tabindex="-1"></a>prob_buckets<span class="sc">%&gt;%</span> </span>
+<span id="cb94-2"><a href="#cb94-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> prob_bucket, <span class="at">y =</span> prop_played)) <span class="sc">+</span></span>
+<span id="cb94-3"><a href="#cb94-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>Separated by card</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a>prob_buckets_by_card <span class="ot">&lt;-</span> played_vs_optimal <span class="sc">%&gt;%</span> </span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">prob_bucket =</span> <span class="fu">if_else</span>(optimal_prob <span class="sc">==</span> <span class="dv">0</span> <span class="sc">|</span> optimal_prob <span class="sc">==</span> <span class="dv">1</span>, optimal_prob, <span class="fu">round</span>(optimal_prob<span class="sc">*</span><span class="dv">9</span>)<span class="sc">/</span><span class="dv">9</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(prob_bucket, this_card) <span class="sc">%&gt;%</span> </span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">n_played =</span> <span class="fu">sum</span>(this_card_played),</span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">n_opportunities =</span> <span class="fu">n</span>(),</span>
+<span id="cb95-6"><a href="#cb95-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">prop_played =</span> <span class="fu">mean</span>(this_card_played),</span>
+<span id="cb95-7"><a href="#cb95-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">avg_prop_in_bucket =</span> <span class="fu">mean</span>(optimal_prob)) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'prob_bucket'. You can override using the
+`.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>prob_buckets_by_card <span class="sc">%&gt;%</span> </span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(this_card)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 68 × 6
+# Groups:   prob_bucket [10]
+   prob_bucket this_card n_played n_opportunities prop_played avg_prop_in_bucket
+         &lt;dbl&gt; &lt;chr&gt;        &lt;dbl&gt;           &lt;int&gt;       &lt;dbl&gt;              &lt;dbl&gt;
+ 1       0     0               53             533      0.0994           0.000545
+ 2       0.111 0                1              18      0.0556           0.116   
+ 3       0.222 0                0               5      0                0.207   
+ 4       0.333 0                0               6      0                0.317   
+ 5       0.444 0                0               9      0                0.455   
+ 6       0.556 0                1               3      0.333            0.544   
+ 7       0.667 0                1               4      0.25             0.675   
+ 8       0.778 0                0               1      0                0.757   
+ 9       1     0               35              78      0.449            0.999   
+10       0     1               28             537      0.0521           0.00106 
+# … with 58 more rows</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>prob_buckets_by_card <span class="sc">%&gt;%</span> </span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> prob_bucket, <span class="at">y =</span> prop_played)) <span class="sc">+</span></span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_bar</span>(<span class="at">stat =</span> <span class="st">"identity"</span>) <span class="sc">+</span></span>
+<span id="cb99-4"><a href="#cb99-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_grid</span>(<span class="at">rows =</span> <span class="fu">vars</span>(this_card))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="BraveRatsThesis_files/figure-html/unnamed-chunk-32-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="impact-of-errors" class="level3">
+<h3 class="anchored" data-anchor-id="impact-of-errors">Impact of errors</h3>
+<p>When a player makes an “error” how does that affect their “win probability”? Are some players making “errors” that are really beneficial predictions of their opponent’s move?</p>
+</section>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
