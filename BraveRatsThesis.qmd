@@ -18,10 +18,12 @@ library(tclust)
 library(tidymodels)
 ```
 
+## Nash optimal data
+
 ```{r}
 # Main data
 
-allTurns <- read.csv("playableSolutions.txt", header = FALSE, sep = "|", col.names = c("gamestate", "value", ".s1","p1_optimal",".s2", "p2_optimal", ".m", "value_matrix")) %>% 
+allTurns <- read.csv("SolutionFiles/optimalSolutionNew.txt", header = FALSE, sep = "|", col.names = c("gamestate", "value", ".s1","p1_optimal",".s2", "p2_optimal", ".m", "value_matrix")) %>% 
   mutate(gamestate = substr(gamestate,1, nchar(gamestate)-2)) %>% # Fixing error where extra characters ":v" are added to gamestate
   mutate(gamestate_str = gamestate) %>% #Making a copy to be used as row labels
   separate(gamestate, c(".1", "p1_cards", ".2", "p2_cards", ".3", "wins", ".4", "generals", ".5", "spies", ".6", "holds"), sep = "-")
@@ -79,13 +81,11 @@ p1_optimal_turns <- allTurns %>%
   mutate_all(~replace(., is.na(.), 0))
 ```
 
-### Human data
+## Human data
 
 ```{r}
 #braverats <- read.csv("BraveRatsData.csv")
 source("readHumanData.r")
-
-head(braverats, 30)
 ```
 
 ```{r}
@@ -124,7 +124,7 @@ allTurns %>%
 allTurns %>% 
   ggplot(aes(x = value)) +
   geom_histogram() +
-  facet_grid(rows = vars(cards_left), scales = "free_y")
+  facet_grid(rows = vars(turn), scales = "free_y")
 ```
 
 ```{r}
@@ -595,6 +595,53 @@ prob_buckets_by_card %>%
   
 ```
 
+
+
 ### Impact of errors
 
 When a player makes an "error" how does that affect their "win probability"? Are some players making "errors" that are really beneficial predictions of their opponent's move?
+
+```{r}
+joined_human_ai %>% 
+  group_by(Game, p1_name) %>% 
+  mutate(next_turn_value = lead(value, n=1),
+         value_change = next_turn_value - value) %>% 
+  
+```
+
+
+# Human EDA
+
+```{r}
+joined_human_ai %>% filter(is.na(value)) %>% 
+  select(c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
+                                                "p1_wins", "p2_wins", "p1_holds", "p2_holds",
+                                                "p1_spy", "p2_spy", "p1_general", "p2_general", "Turn", "Game"))
+```
+
+```{r}
+allTurns %>% filter(turn==5, p1_holds==2, p2_holds==2)
+```
+
+
+```{r}
+joined_human_ai %>% 
+  filter(Game==1)
+```
+
+
+```{r}
+joined_human_ai %>% 
+  mutate(game_player = str_c("Game",Game,p1_name)) %>% 
+  ggplot(aes(x = turn, y = value, color=Outcome, group = game_player)) +
+  geom_line(alpha = 0.5) +
+  facet_grid(rows = vars(Outcome))
+```
+
+
+
+```{r}
+joined_human_ai %>% filter(value==1, Outcome=="Loss")# %>% select()
+```
+
+
