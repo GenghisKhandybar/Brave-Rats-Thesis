@@ -602,12 +602,40 @@ prob_buckets_by_card %>%
 When a player makes an "error" how does that affect their "win probability"? Are some players making "errors" that are really beneficial predictions of their opponent's move?
 
 ```{r}
-joined_human_ai %>% 
+
+value_changes <- joined_human_ai %>% 
   group_by(Game, p1_name) %>% 
-  mutate(next_turn_value = lead(value, n=1),
+   # next_turn_value is the value of the next turn. If game is lost, use game outcome
+  mutate(next_turn_value = if_else(Turn != max(Turn), lead(value, n=1),
+                                if_else(Outcome == "Win", 1, if_else(Outcome == "Loss", 0, 0.5))),
          value_change = next_turn_value - value) %>% 
+  left_join(played_vs_optimal %>% filter(this_card_played == 1))
   
+# This plot is "Optimal probability of playing the card that was played" vs "change in value of game".
+value_changes %>% 
+  ggplot(aes(x = optimal_prob, y = value_change, color = P1)) +
+  geom_point() +
+  geom_smooth()
 ```
+
+```{r}
+value_changes %>% 
+  filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
+  mutate(abs_mistake = if_else(optimal_prob == 0, "Mistake", "Non-mistake")) %>% 
+  group_by(abs_mistake) %>% 
+  summarize(avg_change = mean(value_change), 
+            std_dev = sd(value_change),
+            n = n())
+
+# t-test on difference
+SE = (0.2362542/239 + 0.2356995/797)^0.5
+t = (-0.028737909 - 0.008617767)/ SE
+df = 239 + 797 - 2
+
+pt(t, df=df, lower.tail=TRUE)
+```
+
+There appears to be a small, but statistically insignificant difference inbetween the value changes from plays that are "miastakes" vs. non-mistakes.
 
 
 # Human EDA
