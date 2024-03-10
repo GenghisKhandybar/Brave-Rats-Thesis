@@ -53,8 +53,8 @@ def get_solution_save_string_2(cardsAvailiable, solution):
 def get_solution_from_string(solution_string):
     sections = solution_string.split("|")
     value = float(sections[1]) # Get position value
-    s1 = np.array([float(x) if x != "" else "" for x in sections[3].split(",")]) # First strategy
-    s2 = np.array([float(x) if x != "" else "" for x in sections[5].split(",")]) # Second strategy
+    s1 = np.array([float(x) for x in sections[3].split(",") if x != ""]) # First strategy
+    s2 = np.array([float(x) for x in sections[5].split(",") if x != ""]) # Second strategy
     # Re-construct values matrix
     m_strings = sections[7].split(" $ ")
     m = []

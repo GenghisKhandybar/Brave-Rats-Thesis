@@ -284,28 +284,33 @@ class ratGame:
 
 # %% functions for command line interface
 def print_solution(statename, knownSolutions):
-    print(create_solution_str(ratGame(statename),knownSolutions[statename]))
+    game = ratGame(statename)
+    if not (game.gameWinner is None): # If there's a winner, print this instead
+        print('!!!!!!!! WINNER: PLAYER %d !!!!!!!!'%(game.gameWinner + 1))
+    else:
+        print(create_solution_str(game ,knownSolutions[statename]))
 
 def standardize_decimal(num):
-    return str(round(num, 4)).ljust(6, " ")
+    return str(round(float(num), 4)).ljust(6, " ")
+
+
 
 def create_solution_str(game, tup):
-    if not (game.gameWinner is None):
-        return '!!!!!!!! WINNER: PLAYER %d !!!!!!!!'%(game.gameWinner + 1)
-    
+
     ans = "State id: %s"%(game.get_game_str())
     ans += '\n\nWins: %s    Holds: %s'%(", ".join(map(str,game.wins)), ", ".join(map(str,game.holds)))
     ans += ("\nGenerals used: " + ", ".join(map(str,game.generals)) + "    Spies used: "  + ", ".join(map(str,game.spies)))
     ans += ("\nP1 Win Prob: " + str(round(100*tup[0],5)) + "%")
     ans += ("\nP1 Cards:            " + ",      ".join(map(str,game.cardsAvailiable[0])))
-    ans += ("\nP1 Optimal Strategy: " + ", ".join(map(standardize_decimal,np.round(tup[1][0],4))))
+    ans += ("\nP1 Optimal Strategy: " + ", ".join(map(standardize_decimal, tup[1][0]))) # ,np.round(tup[1][0],4))))
     ans += ("\nP2 Cards:            " + ",      ".join(map(str,game.cardsAvailiable[1])))
-    ans += ("\nP2 Optimal Strategy: " + ", ".join(map(standardize_decimal,np.round(tup[1][1],4))))
+    ans += ("\nP2 Optimal Strategy: " + ", ".join(map(standardize_decimal, tup[1][1]))) 
     ans += "\n\n                          P2"
     
     ans += "\nP1      "# + ",       ".join(map(str,game.cardsAvailiable[1])))
     p1_cards_list = list(game.cardsAvailiable[0])
     p2_cards_list = list(game.cardsAvailiable[1])
+
     for i in range(len(p2_cards_list)):
         ans += '%s (%s%%)  '%(str(p2_cards_list[i]), str(round(100*tup[1][1][i])).rjust(2))
 
@@ -367,7 +372,7 @@ def play_game(game, knownSolutions, players):
 
 # %%
 
-def game_loop():
+def game_loop(knownSolutions):
     while(True):
         print("Select starting position string. Hit enter to start a new game.")
         response = input("Press enter to start a new game. Paste a gamestate string to start from a specific state.")
@@ -418,14 +423,15 @@ def default_console_start(path):
         testGame.getValue(knownSolutions, models= [models.simplexSolver, models.simplexSolver])
         helperFunctions.write_known_solutions(knownSolutions, path)
 
-    game_loop()
+    game_loop(knownSolutions)
 # %%
 
-path = "knownSolutions.txt"
+path = "SolutionFiles/OptimalSolutionNew.txt"
 
 if __name__ == "__main__":
-    #default_console_start(path)
-    testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
+    default_console_start(path)
+
+    """testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
     # This will solve the game
     knownSolutions = helperFunctions.read_known_solutions("temp_solution.txt") #{}
 
@@ -434,4 +440,4 @@ if __name__ == "__main__":
     testGame.getValue(knownSolutions, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600)
     print(knownSolutions)
 
-    helperFunctions.write_known_solutions(knownSolutions, "playableSolutionsNew.txt")
+    helperFunctions.write_known_solutions(knownSolutions, "playableSolutionsNew.txt")"""
