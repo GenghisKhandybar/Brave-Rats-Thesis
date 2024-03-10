@@ -128,14 +128,3 @@ class simplexSolver:
 
         return optimal_strat
     
-
-
-test_matrix = [[1.,0.9599359,  0.,0.,0.],
-    [0.97916667, 0.,1.,0.,1.],
-    [0.89285714, 1.,0.84583333, 0.,0.],
-    [1.,1.,1.,0.84681373, 0.],
-    [1.,1.,1.,1.,0.89583333]]
-
-
-solver = simplexSolver()
-print(solver.aggregate_solution(test_matrix,3,1))
