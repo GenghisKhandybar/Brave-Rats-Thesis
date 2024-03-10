@@ -64,7 +64,7 @@ braverats <- braverats %>%
     P1_Princess_Win = (P1 == 1 & P2 == 7),
     P2_Princess_Win = (P2 == 1 & P1 == 7),
     # We consider assassin's ability to be cancelled if either player uses Prince (7) because prince takes precedent
-    Assassin_In_Play = xor(P1 == 3, P2 == 3) & (P1 != 5 & P2 != 5) & (P1 != 7 & P2 != 7),
+    Assassin_In_Play = (P1 == 3 | P2 == 3) & (P1 != 5 & P2 != 5) & (P1 != 7 & P2 != 7),
     # Ambassador will be factored in later
     # Wizard already factored into others
     # General affects next turn, not current turn
@@ -107,18 +107,19 @@ braverats <- braverats %>%
   ungroup() %>% 
   # Now we group by Game (as before) and Hold Group so that we can sum the held rounds on each turn.
   # If round is tied, we add up all the other holds from the group. Otherwise, 0 holds at end of turn ("EOT" = End Of Turn)
-  # Holds are capped at 3 as there is no functional difference to having more holds.
+  # Holds are capped at 3 as there is no functional difference to having more holds. (This also reduces # of unique gamestates).
   group_by(Game, Hold_Group) %>% 
-  mutate(Holds_EOT_P1 = ifelse(Round_Tied, max(3,cumsum(Rounds_Added_To_Hold_P1)), 0),
-         Holds_EOT_P2 = ifelse(Round_Tied, max(3,cumsum(Rounds_Added_To_Hold_P2)), 0)) %>% 
+  mutate(Holds_EOT_P1 = ifelse(Round_Tied, pmin(3,cumsum(Rounds_Added_To_Hold_P1)), 0),
+         Holds_EOT_P2 = ifelse(Round_Tied, pmin(3,cumsum(Rounds_Added_To_Hold_P2)), 0)) %>% 
   ungroup() %>% 
   group_by(Game) %>% 
   mutate(
     # Holds variable is for holds at start of turn
     Holds_P1 = lag(Holds_EOT_P1, default = 0),
     Holds_P2 = lag(Holds_EOT_P2, default = 0),
+    # Add round wins. Add an extra win for ambassador
     Round_Wins_P1 = ifelse(Round_Winner_P1, 1 + Holds_P1 + 3*P1_Princess_Win + 1*(P1 == 4 & P2 != 5), 0),
-    Round_Wins_P2 = ifelse(Round_Winner_P2, 1 + Holds_P2 + 3*P2_Princess_Win + 1*(P2 == 4 & P2 != 5), 0),
+    Round_Wins_P2 = ifelse(Round_Winner_P2, 1 + Holds_P2 + 3*P2_Princess_Win + 1*(P2 == 4 & P1 != 5), 0),
     Total_Wins_EOT_P1 = cumsum(Round_Wins_P1),
     Total_Wins_EOT_P2 = cumsum(Round_Wins_P2),
     Total_Wins_P1 = lag(Total_Wins_EOT_P1, default = 0),
