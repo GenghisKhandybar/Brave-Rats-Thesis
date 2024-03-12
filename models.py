@@ -7,8 +7,8 @@ np.seterr(divide='ignore', invalid='ignore')
 import helperFunctions
 
 class fullRandom:
-    def get_strategy(self, gameState, reducedMatrix, player):
-        card_count = len(gameState.cardsAvailiable[0])
+    def get_strategy(self, game, reducedMatrix, player):
+        card_count = len(game.cardsAvailable[0])
         return [1/card_count]*card_count
     
 class savedSimplexOptimal:
@@ -23,12 +23,12 @@ class savedSimplexOptimal:
             print(f"ERROR - NO SOLUTION FILE FOUND - {str(e)}")
         self.knownSolutions = knownSolutions
 
-    def get_strategy(self, gameState, reducedMatrix, player):
+    def get_strategy(self, game, reducedMatrix, player):
         # Get the strategy for the appropriate player
-        strat = self.knownSolutions[gameState.get_game_str()][1][player]
+        strat = self.knownSolutions[game.get_game_str()][1][player]
 
         # Next, subset the list of probabilities to only those for available cards
-        strat = strat[list(gameState.cardsAvailiable[player])] 
+        strat = strat[list(game.cardsAvailable[player])] 
         return strat
     
 class simplexSolver:
@@ -105,26 +105,59 @@ class simplexSolver:
 
         return list(best_strat)
 
-    def get_strategy(self, gameState, reducedMatrix, player):
+    def get_strategy(self, game, reducedMatrix, player):
 
-        if len(gameState.cardsAvailiable[0]) == 1:
+        if len(game.cardsAvailable[0]) == 1:
             return [1]
 
-        optimal_strat = self.aggregate_solution(reducedMatrix, gameState.game_size, player)
-        """
-        strategies = self.safe_lemke_howson(nash_subgame, len(gameState.cardsAvailiable[0]), 0)
-        # For some reason, inital_dropped_label = 0 gives an error on rare occasion
-
-        #first_strat = next(strategies)
-        # There can be multiple viable strategies but we just take the first
-        first_strat = strategies
-
-        if np.isnan(first_strat[0][0]): # Sometimes lemke howson method errors, so we use support enumeration
-            # The error in question: nashpy\linalg\tableau.py:318: RuntimeWarning: invalid value encountered in 
-            # true_divide return strategy / sum(strategy)
-            strategies = nash_subgame.support_enumeration()
-            first_strat = next(strategies)
-        """
+        optimal_strat = self.aggregate_solution(reducedMatrix, game.game_size, player)
 
         return optimal_strat
     
+    def get_spy_strat(self, game, reducedMatrix, player, opponent_choice, margin = 0.00001):
+        # opponent_choice = None if you are the player who has to choose first
+        # opponent_choice = opponent's card chosen otherwise
+        if player == 1:
+            reducedMatrix = 1 - np.transpose(reducedMatrix)
+
+        myCards = list(game.cardsAvailable[player])
+
+        if opponent_choice is None:
+
+            value = -np.inf
+            chosenCards = []
+            row_i = 0
+            for row in reducedMatrix:
+                row_min = min(row)
+                if abs(value - row_min) < margin: # If this card is the same as others, we will also use it
+                    chosenCards.append(myCards[row_i])
+                elif row_min > value: # If this card is better, reset the list and use it
+                    value = row_min
+                    chosenCards = [myCards[row_i]]
+                
+                row_i += 1
+               
+            ans = np.zeros(game.game_size)
+            ans[chosenCards] = 1/len(chosenCards)
+
+            return ans
+
+        else:
+            # Going second, we know what opponent chose
+            
+            # If we're player 2, transpose and reverse the values of the matrix
+
+            # UPDATE THIS TO ADD 1 STRATEGY PER OPPONENT'S POSSIBLE STRATEGIES
+            other_player = abs(1-player) 
+            opp_cards = list(game.cardsAvailable[other_player])
+            opponent_column = int(opp_cards.index(opponent_choice))
+            possibleValues = reducedMatrix[:,opponent_column]
+            bestIndex = np.argmax(possibleValues)
+
+            chosenCard = list(game.cardsAvailable[player])[bestIndex]
+                
+            ans = np.zeros(game.game_size)
+            ans[chosenCard] = 1
+
+            return ans
+        
