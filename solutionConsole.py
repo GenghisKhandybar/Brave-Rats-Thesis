@@ -31,7 +31,7 @@ class ratGame:
         self.game_size = 8
 
         if game_str is None:
-            self.cardsAvailiable =[set(range(self.game_size)),set(range(self.game_size))]
+            self.cardsAvailable =[set(range(self.game_size)),set(range(self.game_size))]
             self.wins = [0,0]
             self.generals = [0,0]
             self.spies = [0,0]
@@ -41,7 +41,7 @@ class ratGame:
             
         else:
             game_str = game_str.split("-")
-            self.cardsAvailiable =[set(map(int, list(game_str[1]))), set(map(int, list(game_str[3])))]
+            self.cardsAvailable =[set(map(int, list(game_str[1]))), set(map(int, list(game_str[3])))]
             self.wins = list(map(int, list(game_str[5]))) # KNOWN ISSUE: 2-digit win counts
             self.generals = list(map(int, list(game_str[7])))
             self.spies = list(map(int, list(game_str[9])))
@@ -52,7 +52,7 @@ class ratGame:
                 self.gameWinner = 0
             elif self.wins[1] >= 4:
                 self.gameWinner = 1
-            elif len(self.cardsAvailiable[0]) == 0:
+            elif len(self.cardsAvailable[0]) == 0:
                 self.gameWinner = 0.5
 
     def get_game_str(self, swap_positions = False):
@@ -63,8 +63,8 @@ class ratGame:
             (p1, p2) = 0, 1
 
         # Capping wins at 4 and holds at 3, as anything beyond those is irrelevant
-        game_str = "p1-" + ''.join(map(str, self.cardsAvailiable[p1])) + \
-            "-p2-" + ''.join(map(str, self.cardsAvailiable[p2])) + \
+        game_str = "p1-" + ''.join(map(str, self.cardsAvailable[p1])) + \
+            "-p2-" + ''.join(map(str, self.cardsAvailable[p2])) + \
             "-w-" + str(min(4,self.wins[p1])) + str(min(4,self.wins[p2])) + \
             "-g-" + str(self.generals[p1]) + str(self.generals[p2]) + \
             "-s-" + str(self.spies[p1]) + str(self.spies[p2]) + \
@@ -88,7 +88,7 @@ class ratGame:
             return (-1)
 
     def advanceGameState(self, cards): # Imported from braveRatsGame.py
-        if cards[0] not in self.cardsAvailiable[0] or cards[1] not in self.cardsAvailiable[1]:
+        if cards[0] not in self.cardsAvailable[0] or cards[1] not in self.cardsAvailable[1]:
             print("ILLEGAL PLAY" + self.get_game_str() + str(cards))
 
         values = ((cards[0]+self.generals[0]*2), (cards[1]+self.generals[1]*2)) #Card Values 
@@ -123,7 +123,7 @@ class ratGame:
             if(effects[i] == 2 and effects[1-i] != 2):
                 self.spies[i] = 1
 
-            self.cardsAvailiable[i].remove(cards[i])
+            self.cardsAvailable[i].remove(cards[i])
 
         if self.wins[0] >= 4:
             self.gameWinner = 0
@@ -158,18 +158,18 @@ class ratGame:
         if self.gameWinner is not None:
             knownSolutions[self.get_game_str()] = (1 - self.gameWinner, "Endstate", "")
             return 1 - self.gameWinner
-        elif len(self.cardsAvailiable[0]) == 0:
+        elif len(self.cardsAvailable[0]) == 0:
             knownSolutions[self.get_game_str()] = (0.5, "Endstate", "")
             return 0.5
 
         # If the game is not over, we must make a matrix of all sub-games, and calculate value from it.
         currentRoundMatrix = np.zeros(shape=(self.game_size,self.game_size))
         # Start with a k by k matrix, and get the value for each corresponding sub-state.
-        for p1_next in self.cardsAvailiable[0]:
-            for p2_next in self.cardsAvailiable[1]:
+        for p1_next in self.cardsAvailable[0]:
+            for p2_next in self.cardsAvailable[1]:
                 subGame = ratGame() #ratGame(self.get_game_str())
                 # Copying manually should be faster than using the gamestring
-                subGame.cardsAvailiable = [self.cardsAvailiable[0].copy(), self.cardsAvailiable[1].copy()]
+                subGame.cardsAvailable = [self.cardsAvailable[0].copy(), self.cardsAvailable[1].copy()]
                 subGame.wins = self.wins[:]
                 subGame.generals = self.generals[:]
                 subGame.spies = self.spies[:]
@@ -211,8 +211,8 @@ class ratGame:
             val_matrix = 1 - np.transpose(reverse_solution[2])
             knownSolutions[game_str] = (val, strats, val_matrix)
         else:
-            reducedMatrix = currentRoundMatrix[list(self.cardsAvailiable[0])]
-            reducedMatrix = reducedMatrix[:, list(self.cardsAvailiable[1])]
+            reducedMatrix = currentRoundMatrix[list(self.cardsAvailable[0])]
+            reducedMatrix = reducedMatrix[:, list(self.cardsAvailable[1])]
 
             if max(self.spies) == 0:
                 # Non-spy round - solve via simultaneous move (simplex method)
@@ -227,7 +227,7 @@ class ratGame:
             val = gameResult[1]
             knownSolutions[game_str] = gameResult[0]
 
-        if len(self.cardsAvailiable[0]) >= 7: # Status progress report on high-level turns
+        if len(self.cardsAvailable[0]) >= 7: # Status progress report on high-level turns
             #print("Finished solving gamestate " + self.get_game_str())
             print("Finished solving state" + game_str + " with value " + str(gameResult[1]))
 
@@ -250,7 +250,7 @@ class ratGame:
     
     def sequential_sovle(self, reducedMatrix, first_player):
         # For spy turns, we will simply use minmax.
-        game_size = len(self.cardsAvailiable[0])
+        game_size = len(self.cardsAvailable[0])
 
         if first_player == 1:
             # If P2 is going first, we transpose and take the negative to figure out which is best.
@@ -301,15 +301,15 @@ def create_solution_str(game, tup):
     ans += '\n\nWins: %s    Holds: %s'%(", ".join(map(str,game.wins)), ", ".join(map(str,game.holds)))
     ans += ("\nGenerals used: " + ", ".join(map(str,game.generals)) + "    Spies used: "  + ", ".join(map(str,game.spies)))
     ans += ("\nP1 Win Prob: " + str(round(100*tup[0],5)) + "%")
-    ans += ("\nP1 Cards:            " + ",      ".join(map(str,game.cardsAvailiable[0])))
+    ans += ("\nP1 Cards:            " + ",      ".join(map(str,game.cardsAvailable[0])))
     ans += ("\nP1 Optimal Strategy: " + ", ".join(map(standardize_decimal, tup[1][0]))) # ,np.round(tup[1][0],4))))
-    ans += ("\nP2 Cards:            " + ",      ".join(map(str,game.cardsAvailiable[1])))
+    ans += ("\nP2 Cards:            " + ",      ".join(map(str,game.cardsAvailable[1])))
     ans += ("\nP2 Optimal Strategy: " + ", ".join(map(standardize_decimal, tup[1][1]))) 
     ans += "\n\n                          P2"
     
-    ans += "\nP1      "# + ",       ".join(map(str,game.cardsAvailiable[1])))
-    p1_cards_list = list(game.cardsAvailiable[0])
-    p2_cards_list = list(game.cardsAvailiable[1])
+    ans += "\nP1      "# + ",       ".join(map(str,game.cardsAvailable[1])))
+    p1_cards_list = list(game.cardsAvailable[0])
+    p2_cards_list = list(game.cardsAvailable[1])
 
     for i in range(len(p2_cards_list)):
         ans += '%s (%s%%)  '%(str(p2_cards_list[i]), str(round(100*tup[1][1][i])).rjust(2))
@@ -324,13 +324,13 @@ def create_solution_str(game, tup):
 def play_game(game, knownSolutions, players):
     state_str = game.get_game_str()
     solution = knownSolutions[state_str]
-    game_size = len(game.cardsAvailiable[0])
+    game_size = len(game.cardsAvailable[0])
 
     plays = [None, None]
     for player in range(2):
         p_type = players[player]
         if p_type == "Human":
-            choices = game.cardsAvailiable[player]
+            choices = game.cardsAvailable[player]
             print('Choose card for player %d:'%(player + 1))
             
             while True:
@@ -352,11 +352,11 @@ def play_game(game, knownSolutions, players):
 
         if p_type == "AI":
             probs = solution[1][player]
-            plays[player] = list(game.cardsAvailiable[player])[np.random.choice(game_size, 1, p = probs)[0]]
+            plays[player] = list(game.cardsAvailable[player])[np.random.choice(game_size, 1, p = probs)[0]]
             print(f"AI Choice: {plays[player]}")
 
         if p_type == "Random":
-            plays[player] = list(game.cardsAvailiable[player])[np.random.choice(game_size, 1)[0]]
+            plays[player] = list(game.cardsAvailable[player])[np.random.choice(game_size, 1)[0]]
             print(f"Random Choice: {plays[player]}")
     
     print("\nPLAYING CARDS %d AND %d -----------------------------------------------\n"%(plays[0], plays[1]))
@@ -396,6 +396,23 @@ def game_loop(knownSolutions):
         if(response == "n"):
             break
 
+def solve_game(savePath, tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60):
+    # This will solve the game
+    # temp_solution will save as a txt file periodically in case the solution process is interrupted
+    # you may input already-solved turns such as temp_solution.txt with loadFromTempSave to resume progress.
+    
+    print(f"Solving the game with AI: {type(models[0])} and {type(models[1])}. Solve times may vary. Reporting progress every {report_interval/60} minutes, saving every {save_interval/60} minutes to {tempSavePath}.")
+
+    if loadFromTempSave is not None:
+        knownSolutions = helperFunctions.read_known_solutions(loadFromTempSave) #{}
+    else:
+        knownSolutions = {}
+
+    testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
+    testGame.getValue(knownSolutions, savePath = tempSavePath, models= models, save_interval= 600, report_interval = 60)
+
+    helperFunctions.write_known_solutions(knownSolutions, savePath)
+
 def default_console_start(path):
         # Try to read the file "knownSolutions.txt"
     # If we can't, create the solutions from scratch
@@ -410,18 +427,10 @@ def default_console_start(path):
         print("Done reading solutions")
     except Exception as e:
         # If file couldn't be read, we'll make a new one
-
-        
-
         print(e)
-        print("Solution file not found. Solving manually. (Should take 6-10 minutes?)")
+        print(f"Could not find solution. Solving game instead, will save to {path}.")
 
-        testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
-        # This will solve the game
-        knownSolutions = {}
-
-        testGame.getValue(knownSolutions, models= [models.simplexSolver, models.simplexSolver])
-        helperFunctions.write_known_solutions(knownSolutions, path)
+        solve_game(path, tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60)
 
     game_loop(knownSolutions)
 # %%
@@ -429,15 +438,24 @@ def default_console_start(path):
 path = "SolutionFiles/OptimalSolutionNew.txt"
 
 if __name__ == "__main__":
-    default_console_start(path)
+    
+    solve_game(path = "SolutionFiles/SimplexVsRandom.txt")
+    #default_console_start(path)
 
-    """testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
-    # This will solve the game
-    knownSolutions = helperFunctions.read_known_solutions("temp_solution.txt") #{}
+    """
+    test_matrix =np.array( 
+                [[0.25, 0.5, 0.75],
+                [0.3, 0.3, 0.4],
+                [0.9, 0.8, 0.1]])
+    
+    test_matrix =np.array( 
+                [[0.25, 0.25, 0.25],
+                [0.35, 0.35, 0.35],
+                [0.45, 0.45, 0.45]])
 
-    #[models.fullRandom(), models.fullRandom()]
-    # [models.simplexSolver(), models.simplexSolver()]
-    testGame.getValue(knownSolutions, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600)
-    print(knownSolutions)
 
-    helperFunctions.write_known_solutions(knownSolutions, "playableSolutionsNew.txt")"""
+    solver = models.simplexSolver()
+    print(solver.get_spy_strat(ratGame('p1-012-p2-567-w-00-g-00-s-00-h-00'), test_matrix, 1, None))
+    """
+
+
