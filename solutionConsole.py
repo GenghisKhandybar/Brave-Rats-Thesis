@@ -42,7 +42,7 @@ class ratGame:
         else:
             game_str = game_str.split("-")
             self.cardsAvailable =[set(map(int, list(game_str[1]))), set(map(int, list(game_str[3])))]
-            self.wins = list(map(int, list(game_str[5]))) # KNOWN ISSUE: 2-digit win counts
+            self.wins = list(map(int, list(game_str[5])))
             self.generals = list(map(int, list(game_str[7])))
             self.spies = list(map(int, list(game_str[9])))
             self.holds = list(map(int, list(game_str[11])))
@@ -130,36 +130,76 @@ class ratGame:
         elif self.wins[1] >= 4:
             self.gameWinner = 1
 
-    def get_strats_and_value(self, reducedMatrix, models):
+    def get_strats_and_value(self, currentRoundMatrix, reducedMatrix, models):
         strat_results = [0,0] # 0's are placeholders for distributions
 
         # Grab the optimal strategies if necessary for either player
         
         for i in range(2):
-            strat_results[i] = models[i].get_strategy(self, reducedMatrix = reducedMatrix, player = i)
+            strat_results[i] = models[i].get_strategy(self, reducedMatrix, player = i)
             # Validate the strategy
             if abs(sum(strat_results[i])-1) > 0.00001:
                 print(f"WARNING: Invalid strategy on turn {self.get_game_str()}: {strat_results[i]}")
 
         # Calculate the value of the game given these models
-        p2_card_vals = np.matmul(np.array(strat_results[0]), reducedMatrix)
+        p2_card_vals = np.matmul(np.array(strat_results[0]), currentRoundMatrix)
         value = np.matmul(np.array(strat_results[1]), p2_card_vals)
 
-        state_info = (value, [list(strat_results[0]), list(strat_results[1])], reducedMatrix)
+        # value, strategies, reducedmatrix, strategy types
+        # Both strategies are type "s" for simultaneous - one probability per card
+        state_info = (value, [list(strat_results[0]), list(strat_results[1])], reducedMatrix, ["s", "s"])
 
-        return (state_info, value)
+        return state_info
 
-    def getValue(self, knownSolutions, models, savePath = "temp_solution.txt", save_interval = 600, report_interval = 60):
+    def get_sequential_strats_and_value(self, currentRoundMatrix, reducedMatrix, models, first_player, margin = 0.00001):
+        strat_results = [0,0] # 0's are placeholders for first player's distribution and second player's response lists
+
+        # Grab the optimal strategies if necessary for either player
+        second_player = abs(1-first_player)
+        
+        # We use indexes 0 and 1 to indicate turn order. These will be flipped at the end if first_player == 1
+        strat_results[0] = models[first_player].get_first_spy_strat(self, reducedMatrix, first_player)
+        strat_results[1] = models[second_player].get_second_spy_strat(self, reducedMatrix, second_player)
+
+        
+        if first_player == 1:
+           currentRoundMatrix = np.transpose(currentRoundMatrix)
+
+        # Calculate the value of the game given these models
+        value = 0
+        total_prob = 0 # To check that all adds upp correctly
+        for first_card in self.cardsAvailable[first_player]:
+            prob_of_first_card = strat_results[0][first_card]
+            chosen_responses = strat_results[1][first_card]
+            prob_of_response = 1/len(chosen_responses)
+            for response_card in chosen_responses:
+                total_prob += prob_of_response * prob_of_first_card # For error checking
+                value += prob_of_first_card*prob_of_response*currentRoundMatrix[first_card,response_card] 
+
+        # We have 3 types of strategies: "f" for first, and "r" for response. 
+        strat_types = ["f", "f"]
+        strat_types[second_player] = "r"
+        state_info = (value, [list(strat_results[first_player]), list(strat_results[second_player])], reducedMatrix, strat_types)
+
+        # Error checking
+        if abs(total_prob - 1) > margin:
+            print(f"ERROR - INVALID TOTAL PROBABILITY ON SEQUENTIAL TURN: {total_prob}. State info: {state_info}")
+        if value > 1+margin or value < 0-margin:
+            print(f"ERROR - VALUE ON SEQUENTIAL TURN: {value}. State info: {state_info}")
+
+        return state_info
+
+    def getValue(self, knownSolutions, models, savePath = "temp_solution.txt", save_interval = 600, report_interval = 60, report_margin = 0.000001):
         # Returns the value of the current gamestate
         # Strategy can either be "Optimal" or an object with property get_strategy that takes a gamestate (and player #)
         # and returns a list of probabilities for each of that player's possible cards.
 
         #First,  check if the game is over (win/loss or tie)
         if self.gameWinner is not None:
-            knownSolutions[self.get_game_str()] = (1 - self.gameWinner, "Endstate", "")
+            knownSolutions[self.get_game_str()] = (1 - self.gameWinner, "Endstate", "", ["N", "N"])
             return 1 - self.gameWinner
         elif len(self.cardsAvailable[0]) == 0:
-            knownSolutions[self.get_game_str()] = (0.5, "Endstate", "")
+            knownSolutions[self.get_game_str()] = (0.5, "Endstate", "", ["N", "N"])
             return 0.5
 
         # If the game is not over, we must make a matrix of all sub-games, and calculate value from it.
@@ -190,7 +230,7 @@ class ratGame:
 
                     subGameValue = subGame.getValue(knownSolutions, models, savePath=savePath, save_interval=save_interval, report_interval=report_interval)
                     
-                    if subGameValue < 0 or subGameValue > 1:
+                    if subGameValue+report_margin < 0 or subGameValue-report_margin > 1:
                         print(f"Invalid value in position {self.get_game_str()}: {subGameValue}")
 
                     currentRoundMatrix[p1_next][p2_next] = subGameValue
@@ -205,31 +245,34 @@ class ratGame:
         # Note: It's still necessary that we calculated the up-stream values above, to traverse subsequent turns.
         reverse_str = helperFunctions.reverseGameState(game_str)
         if type(models[0]) is type(models[1]) and reverse_str in knownSolutions:
-            reverse_solution = knownSolutions[game_str]
+            reverse_solution = knownSolutions[reverse_str]
             val = 1 - reverse_solution[0]
             strats = [reverse_solution[1][1], reverse_solution[1][0]]
             val_matrix = 1 - np.transpose(reverse_solution[2])
-            knownSolutions[game_str] = (val, strats, val_matrix)
+            strat_types = [reverse_solution[3][1], reverse_solution[3][0]]
+            knownSolutions[game_str] = (val, strats, val_matrix, strat_types)
         else:
             reducedMatrix = currentRoundMatrix[list(self.cardsAvailable[0])]
             reducedMatrix = reducedMatrix[:, list(self.cardsAvailable[1])]
 
-            if max(self.spies) == 0:
+            if max(self.spies) == 0: # Check if a spy effect is active
                 # Non-spy round - solve via simultaneous move (simplex method)
 
-                gameResult = self.get_strats_and_value(reducedMatrix, models)
+                gameResult = self.get_strats_and_value(currentRoundMatrix, reducedMatrix, models)
 
             else:
                 # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
                 # Spy round - sequential solve (minmax)
-                gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
+                gameResult = self.get_sequential_strats_and_value(currentRoundMatrix, reducedMatrix, models=models, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
 
-            val = gameResult[1]
-            knownSolutions[game_str] = gameResult[0]
+                #gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) 
+
+            val = gameResult[0]
+            knownSolutions[game_str] = gameResult
 
         if len(self.cardsAvailable[0]) >= 7: # Status progress report on high-level turns
             #print("Finished solving gamestate " + self.get_game_str())
-            print("Finished solving state" + game_str + " with value " + str(gameResult[1]))
+            print("Finished solving state" + game_str + " with value " + str(gameResult[0]))
 
         # Time-based progress reports and saving.
         global startTime, saveStartTime, overall_startTime, computed_states
@@ -396,20 +439,22 @@ def game_loop(knownSolutions):
         if(response == "n"):
             break
 
-def solve_game(savePath, tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60):
+def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00', 
+               tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60):
     # This will solve the game
     # temp_solution will save as a txt file periodically in case the solution process is interrupted
     # you may input already-solved turns such as temp_solution.txt with loadFromTempSave to resume progress.
     
-    print(f"Solving the game with AI: {type(models[0])} and {type(models[1])}. Solve times may vary. Reporting progress every {report_interval/60} minutes, saving every {save_interval/60} minutes to {tempSavePath}.")
+    print(f"Solving the game with models: {type(models[0])} and {type(models[1])}. Solve times may vary. Reporting progress every {round(report_interval/60,1)} minutes, saving every {round(save_interval/60,1)} minutes to {tempSavePath}.")
 
     if loadFromTempSave is not None:
         knownSolutions = helperFunctions.read_known_solutions(loadFromTempSave) #{}
+        print(f"Loaded {len(knownSolutions)} solutions from {loadFromTempSave}")
     else:
         knownSolutions = {}
 
-    testGame = ratGame('p1-01234567-p2-01234567-w-00-g-00-s-00-h-00')
-    testGame.getValue(knownSolutions, savePath = tempSavePath, models= models, save_interval= 600, report_interval = 60)
+    testGame = ratGame(start_gamestr)
+    testGame.getValue(knownSolutions, savePath = tempSavePath, models= models, save_interval= save_interval, report_interval = report_interval)
 
     helperFunctions.write_known_solutions(knownSolutions, savePath)
 
@@ -435,11 +480,11 @@ def default_console_start(path):
     game_loop(knownSolutions)
 # %%
 
-path = "SolutionFiles/OptimalSolutionNew.txt"
+path = "SolutionFiles/OptimalSolutionNew2.txt"
 
 if __name__ == "__main__":
-    
-    solve_game(path = "SolutionFiles/SimplexVsRandom.txt")
+    solve_game(path, start_gamestr='p1-123456-p2-123456-w-11-g-00-s-00-h-00', save_interval = 30, loadFromTempSave=path)
+    #solve_game(path = "SolutionFiles/SimplexVsRandom.txt", models=[models.simplexSolver(), models.fullRandom()])
     #default_console_start(path)
 
     """

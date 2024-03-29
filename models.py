@@ -32,16 +32,16 @@ class savedSimplexOptimal:
         return strat
     
 class simplexSolver:
-    def aggregate_solution(self, reducedMatrix, game_size, player):
+    def aggregate_solution(self, game, reducedMatrix, player):
         # Takes all availiable strategies and averages them for a final result
         # Ocasionally, these methods yield different strategies that yield the same value
         # However, some of these strategies will be strictly better against sub-optimal play
         # Therefore, this selection of optimal strategy will give better results vs humans
 
-        # Rounding matrix to 6 decimals to prevent floating point decimal error issue
+        # Rounding matrix to 5 decimals to prevent floating point decimal error issue
         reducedMatrix = np.round(reducedMatrix,5)
 
-        game_size = len(reducedMatrix)
+        reduced_game_size = len(reducedMatrix)
         nash_subgame = nash.Game(reducedMatrix)
         strategies = []
 
@@ -70,7 +70,7 @@ class simplexSolver:
         if len(strategies) == 0:
             print("Unusual case - no equilibira found by vertex enumeration or support enumeration. Trying lemke howson.")
             print(reducedMatrix)
-            for i in range(game_size):
+            for i in range(reduced_game_size):
                 try:
                     strat = nash_subgame.lemke_howson(initial_dropped_label=i)
                     if not np.isnan(strat[0][0]):
@@ -89,16 +89,11 @@ class simplexSolver:
             if strat_val_sum > best_val:
                 best_val = strat_val_sum
                 best_strat = s
+
         #aggregated_optimal = np.sum(np.array(strategies), axis = 0) / len(strategies)
 
         if best_strat is None:
             print("\nERROR in aggregate_solution: No strategies found.\n")
-
-        """
-        strat = np.zeros(shape = game_size)
-        for s in strategies:
-            strat += np.array(s[0])/len(strategies)
-        """
 
         if abs(sum(best_strat)-1) > 0.0001:
             print(f"INVALID STRATEGY: \n{best_strat}")
@@ -106,58 +101,89 @@ class simplexSolver:
         return list(best_strat)
 
     def get_strategy(self, game, reducedMatrix, player):
-
+        # Trivial solution for only 1 card
         if len(game.cardsAvailable[0]) == 1:
-            return [1]
+            strat = np.zeros(shape = 8)
+            strat[list(game.cardsAvailable[player])[0]] = 1
+            return strat
 
-        optimal_strat = self.aggregate_solution(reducedMatrix, game.game_size, player)
+        optimal_strat = self.aggregate_solution(game, reducedMatrix, player)
 
-        return optimal_strat
+        # Convert reduced-from strategy into long-form strategy
+        strat = np.zeros(shape = 8)
+        reduced_index = 0 # index in reduced-grid strategy
+        for i in range(8):
+            if i in game.cardsAvailable[player]:
+                strat[i] = optimal_strat[reduced_index]
+                reduced_index += 1
+
+        return strat
     
-    def get_spy_strat(self, game, reducedMatrix, player, opponent_choice, margin = 0.00001):
-        # opponent_choice = None if you are the player who has to choose first
-        # opponent_choice = opponent's card chosen otherwise
+    def get_first_spy_strat(self, game, reducedMatrix, player, margin = 0.00001, row_sum_margin = 0.005):
         if player == 1:
             reducedMatrix = 1 - np.transpose(reducedMatrix)
 
         myCards = list(game.cardsAvailable[player])
 
-        if opponent_choice is None:
-
-            value = -np.inf
-            chosenCards = []
-            row_i = 0
-            for row in reducedMatrix:
-                row_min = min(row)
-                if abs(value - row_min) < margin: # If this card is the same as others, we will also use it
-                    chosenCards.append(myCards[row_i])
-                elif row_min > value: # If this card is better, reset the list and use it
-                    value = row_min
-                    chosenCards = [myCards[row_i]]
-                
-                row_i += 1
-               
-            ans = np.zeros(game.game_size)
-            ans[chosenCards] = 1/len(chosenCards)
-
-            return ans
-
-        else:
-            # Going second, we know what opponent chose
+        value = -np.inf
+        best_row_sum = -np.inf
+        chosenCards = []
+        row_i = 0
+        for row in reducedMatrix:
+            row_min = min(row)
+            row_sum = sum(row) # row_sum is secondary, not as important. It represents how good the card is on average
+            # We give it a much more lenient margin for diverse play, as it doesn't even effect optimal play values
+            if abs(value - row_min) < margin and abs(row_sum - best_row_sum) < row_sum_margin: # If this card is the same as others, we will also use it
+                chosenCards.append(myCards[row_i])
+            elif row_min > value or (abs(value - row_min) < margin and row_sum > best_row_sum): 
+                # If this card is better, reset the list and use it
+                # It can be either:
+                # - Better value
+                # - Equal value and better row sum
+                value = row_min
+                best_row_sum = row_sum
+                chosenCards = [myCards[row_i]]
             
-            # If we're player 2, transpose and reverse the values of the matrix
+            row_i += 1
+            
+        ans = np.zeros(8)
+        ans[chosenCards] = 1/len(chosenCards)
 
-            # UPDATE THIS TO ADD 1 STRATEGY PER OPPONENT'S POSSIBLE STRATEGIES
-            other_player = abs(1-player) 
-            opp_cards = list(game.cardsAvailable[other_player])
-            opponent_column = int(opp_cards.index(opponent_choice))
-            possibleValues = reducedMatrix[:,opponent_column]
-            bestIndex = np.argmax(possibleValues)
+        if abs(sum(ans) - 1) > margin:
+            print(f"ERROR in first turn solve - invalid response: {ans}")
 
-            chosenCard = list(game.cardsAvailable[player])[bestIndex]
-                
-            ans = np.zeros(game.game_size)
-            ans[chosenCard] = 1
+        return ans
 
-            return ans
+    def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
+        # opponent_choice = None if you are the player who has to choose first
+        # opponent_choice = opponent's card chosen otherwise
+        if player == 1:
+            reducedMatrix = 1 - np.transpose(reducedMatrix)
+        other_player = abs(1-player)
+
+        myCards = list(game.cardsAvailable[player])
         
+
+        # Going second, we know what opponent chose
+        
+        # If we're player 2, transpose and reverse the values of the matrix
+
+        # For each choice the opponent could make, we have a list of cards we could play
+        ans = [] # Placeholder list
+        opp_cards = list(game.cardsAvailable[other_player])
+
+        
+        reduced_i = 0 
+        for i in range(game.game_size):
+            if i in opp_cards:
+                #opponent_column = int(opp_cards.index(opponent_choice))
+                possibleValues = reducedMatrix[:,reduced_i]
+                bestVal = np.max(possibleValues)
+                bestIndexes = list(np.flatnonzero(abs(possibleValues-bestVal) < margin))
+                bestCards = [myCards[x] for x in bestIndexes]  # A list of all valid cards to play (ex. "[4,6,7]" if each of those cards is equally viable)
+                ans.append(bestCards)
+                reduced_i += 1
+            else:
+                ans.append([])
+        
+        return ans
