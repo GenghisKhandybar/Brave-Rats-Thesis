@@ -250,7 +250,8 @@ class ratGame:
             strats = [reverse_solution[1][1], reverse_solution[1][0]]
             val_matrix = 1 - np.transpose(reverse_solution[2])
             strat_types = [reverse_solution[3][1], reverse_solution[3][0]]
-            knownSolutions[game_str] = (val, strats, val_matrix, strat_types)
+            gameResult = (val, strats, val_matrix, strat_types)
+            knownSolutions[game_str] = gameResult
         else:
             reducedMatrix = currentRoundMatrix[list(self.cardsAvailable[0])]
             reducedMatrix = reducedMatrix[:, list(self.cardsAvailable[1])]
@@ -272,7 +273,7 @@ class ratGame:
 
         if len(self.cardsAvailable[0]) >= 7: # Status progress report on high-level turns
             #print("Finished solving gamestate " + self.get_game_str())
-            print("Finished solving state" + game_str + " with value " + str(gameResult[0]))
+            print("Progress: finished solving turn 2 state " + game_str + " with value " + str(gameResult[0]))
 
         # Time-based progress reports and saving.
         global startTime, saveStartTime, overall_startTime, computed_states
@@ -338,28 +339,48 @@ def standardize_decimal(num):
 
 
 
+
 def create_solution_str(game, tup):
+    p1_cards_list = list(game.cardsAvailable[0])
+    p2_cards_list = list(game.cardsAvailable[1])
+    p1_probs = [tup[1][0][i] for i in p1_cards_list] # reduced forms
+    p2_probs = [tup[1][1][i] for i in p2_cards_list]
 
     ans = "State id: %s"%(game.get_game_str())
     ans += '\n\nWins: %s    Holds: %s'%(", ".join(map(str,game.wins)), ", ".join(map(str,game.holds)))
     ans += ("\nGenerals used: " + ", ".join(map(str,game.generals)) + "    Spies used: "  + ", ".join(map(str,game.spies)))
     ans += ("\nP1 Win Prob: " + str(round(100*tup[0],5)) + "%")
     ans += ("\nP1 Cards:            " + ",      ".join(map(str,game.cardsAvailable[0])))
-    ans += ("\nP1 Optimal Strategy: " + ", ".join(map(standardize_decimal, tup[1][0]))) # ,np.round(tup[1][0],4))))
+    if tup[3][0] != "r": # Not a spy response
+        ans += ("\nP1 Optimal Strategy: " + ", ".join(map(standardize_decimal, p1_probs))) # ,np.round(tup[1][0],4))))
+    if tup[3][1] == "r":
+        ans += f"\nP2 Response Cards:   {', '.join(['/'.join([str(y) for y in x]).ljust(6, ' ') for x in p2_probs])}"
     ans += ("\nP2 Cards:            " + ",      ".join(map(str,game.cardsAvailable[1])))
-    ans += ("\nP2 Optimal Strategy: " + ", ".join(map(standardize_decimal, tup[1][1]))) 
+    if tup[3][1] != "r": # Not a spy response
+        ans += ("\nP2 Optimal Strategy: " + ', '.join(map(standardize_decimal, p2_probs))) 
+    if tup[3][0] == "r":
+        ans += f"\nP1 Response Cards:   {', '.join(['/'.join([str(y) for y in x]).ljust(6, ' ') for x in p1_probs])}"
     ans += "\n\n                          P2"
     
     ans += "\nP1      "# + ",       ".join(map(str,game.cardsAvailable[1])))
-    p1_cards_list = list(game.cardsAvailable[0])
-    p2_cards_list = list(game.cardsAvailable[1])
+    
+
+    if tup[3][0] != "r": # Not a spy response
+        p1_prob_strings = ["(" + str(round(100*x)).rjust(2) + "%) " for x in p1_probs]
+    else:
+        p1_prob_strings = ["     "]*8
+    if tup[3][1] != "r": # Not a spy response
+        p2_prob_strings = ["(" + str(round(100*x)).rjust(2) + "%) " for x in p2_probs]
+    else:
+        p2_prob_strings = ["     "]*8
 
     for i in range(len(p2_cards_list)):
-        ans += '%s (%s%%)  '%(str(p2_cards_list[i]), str(round(100*tup[1][1][i])).rjust(2))
+        ans += f"{p2_cards_list[i]} {p2_prob_strings[i]}"
+        #ans += '%s (%s%%)  '%(str(p2_cards_list[i]), str(round(100*tup[1][1][i])).rjust(2))
 
     for i in range(len(p1_cards_list)):
-        ans += '\n%s (%s%%) %s' % (str(p1_cards_list[i]), str(round(100*tup[1][0][i])).rjust(2), " | ".join(map(standardize_decimal,tup[2][i])))
-        #ans += "\n" + str(p1_cards_list[i]) + " (" +  + " | ".join(map(standardize_decimal,tup[2][i]))
+        ans += f"\n{p1_cards_list[i]} {p1_prob_strings[i]} {' | '.join(map(standardize_decimal,tup[2][i]))}"
+        #ans += '\n%s (%s%%) %s' % (str(p1_cards_list[i]), str(round(100*tup[1][0][i])).rjust(2), " | ".join(map(standardize_decimal,tup[2][i])))
 
     #ans += ("\nCurrent Game Matrix: \n" + str(np.round(tup[2], 5)))
     return ans
@@ -415,13 +436,13 @@ def play_game(game, knownSolutions, players):
 
 # %%
 
-def game_loop(knownSolutions):
+def game_loop(knownSolutions, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00'):
     while(True):
         print("Select starting position string. Hit enter to start a new game.")
         response = input("Press enter to start a new game. Paste a gamestate string to start from a specific state.")
 
         if len(response) == 0:
-            game = ratGame()
+            game = ratGame(start_gamestr)
         else:
             try:
                 game = ratGame(response)
@@ -458,7 +479,7 @@ def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00
 
     helperFunctions.write_known_solutions(knownSolutions, savePath)
 
-def default_console_start(path):
+def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00'):
         # Try to read the file "knownSolutions.txt"
     # If we can't, create the solutions from scratch
     try:
@@ -477,15 +498,15 @@ def default_console_start(path):
 
         solve_game(path, tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60)
 
-    game_loop(knownSolutions)
+    game_loop(knownSolutions, start_gamestr= start_gamestr)
 # %%
 
 path = "SolutionFiles/OptimalSolutionNew2.txt"
 
 if __name__ == "__main__":
-    solve_game(path, start_gamestr='p1-123456-p2-123456-w-11-g-00-s-00-h-00', save_interval = 30, loadFromTempSave=path)
+    solve_game(path, save_interval = 300, loadFromTempSave="temp_solution.txt")
     #solve_game(path = "SolutionFiles/SimplexVsRandom.txt", models=[models.simplexSolver(), models.fullRandom()])
-    #default_console_start(path)
+    #default_console_start(path) #, start_gamestr = 'p1-123456-p2-123456-w-11-g-00-s-00-h-00'
 
     """
     test_matrix =np.array( 
