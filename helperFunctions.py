@@ -49,7 +49,9 @@ def get_solution_from_string(solution_string):
     strats = []
     for player in range(2):
         if strat_types[player] != "r":
-            s = np.array([float(x) for x in raw_strats[player].split(",") if x != ""]) # Each item is a single float for a probability
+            # Each item is a single float for a probability
+            # 0 if not an option
+            s = np.array([float(x) if x != "" else 0 for x in raw_strats[player].split(",") ]) 
         else: # Each item is a list of integers for cards delimited by "/"
             s = []
             for x in raw_strats[player].split(","):
