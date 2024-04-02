@@ -375,7 +375,7 @@ def create_solution_str(game, tup):
         p2_prob_strings = ["     "]*8
 
     for i in range(len(p2_cards_list)):
-        ans += f"{p2_cards_list[i]} {p2_prob_strings[i]}"
+        ans += f" {p2_cards_list[i]} {p2_prob_strings[i]}"
         #ans += '%s (%s%%)  '%(str(p2_cards_list[i]), str(round(100*tup[1][1][i])).rjust(2))
 
     for i in range(len(p1_cards_list)):
@@ -391,7 +391,11 @@ def play_game(game, knownSolutions, players):
     game_size = len(game.cardsAvailable[0])
 
     plays = [None, None]
-    for player in range(2):
+    play_order = [0,1]
+    if game.spies[0]==1:
+        play_order = [1,0]
+
+    for player in play_order:
         p_type = players[player]
         if p_type == "Human":
             choices = game.cardsAvailable[player]
@@ -415,8 +419,15 @@ def play_game(game, knownSolutions, players):
                 print(f"Choose again. 'a' for AI, 'r' for random 'x' to exit, or one of the following:\n{str(choices)}")
 
         if p_type == "AI":
-            probs = solution[1][player]
-            plays[player] = list(game.cardsAvailable[player])[np.random.choice(game_size, 1, p = probs)[0]]
+            if solution[3][player] == 'r': # Response, based on opponent's card
+                opp_play = plays[play_order[0]]
+                possibilities = solution[1][player][opp_play]
+                print(f"Choosing randomly from equally valid cards {', '.join([str(x) for x in possibilities])}")
+                plays[player] = np.random.choice(possibilities)
+            else: # Either simultaneous-move or first move
+                probs = np.array([x for x in solution[1][player] if x is not None])
+                probs = probs / sum(probs) # To fix rounding errors
+                plays[player] = list(game.cardsAvailable[player])[np.random.choice(len(probs), 1, p = probs)[0]]
             print(f"AI Choice: {plays[player]}")
 
         if p_type == "Random":
@@ -501,27 +512,12 @@ def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-
     game_loop(knownSolutions, start_gamestr= start_gamestr)
 # %%
 
-path = "SolutionFiles/OptimalSolutionNew2.txt"
+path = "SolutionFiles/updatedOptimalSolution.txt"
 
 if __name__ == "__main__":
-    solve_game(path, save_interval = 300, loadFromTempSave="temp_solution.txt")
-    #solve_game(path = "SolutionFiles/SimplexVsRandom.txt", models=[models.simplexSolver(), models.fullRandom()])
-    #default_console_start(path) #, start_gamestr = 'p1-123456-p2-123456-w-11-g-00-s-00-h-00'
-
-    """
-    test_matrix =np.array( 
-                [[0.25, 0.5, 0.75],
-                [0.3, 0.3, 0.4],
-                [0.9, 0.8, 0.1]])
-    
-    test_matrix =np.array( 
-                [[0.25, 0.25, 0.25],
-                [0.35, 0.35, 0.35],
-                [0.45, 0.45, 0.45]])
-
-
-    solver = models.simplexSolver()
-    print(solver.get_spy_strat(ratGame('p1-012-p2-567-w-00-g-00-s-00-h-00'), test_matrix, 1, None))
-    """
-
+    #solve_game(savePath = "SolutionFiles/updatedOptimalSolution.txt", save_interval = 300, loadFromTempSave="temp_solution.txt")
+    #solve_game(savePath = "SolutionFiles/SimplexVsRandom.txt", models=[models.savedSimplexOptimal(path), models.fullRandom()])
+    #solve_game(savePath = "SolutionFiles/DefeatVsRandom.txt", models=[models.defeatStrategy(models.fullRandom()), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/SimplexVsDefeat.txt", models=[models.savedSimplexOptimal(path), models.defeatStrategy(models.savedSimplexOptimal(path))])
+    #default_console_start(path)
 
