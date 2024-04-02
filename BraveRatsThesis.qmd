@@ -344,6 +344,9 @@ fit_df[-(1:8),] %>%
   pivot_wider(names_from = turn, values_from = ".")
 ```
 
+
+### GLM
+
 Model 4: Only P1's factors, logistic curve
 
 ```{r}
@@ -355,9 +358,31 @@ glm_1 <- glm(value ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+
 
 summary(glm_1)
 
-# Interpret these as "increase in the odds of winning"
+# Interpret these as "multipying the odds of winning"
 exp(glm_1$coefficients)
 ```
+
+Model 5: All factors, logit curve
+
+```{r}
+glm_1 <- glm(value ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+
+          p1_wins+
+         p1_general+
+         p1_spy+
+         p1_holds, family = quasibinomial(link="logit"), data = df_predictors)
+
+summary(glm_1)
+
+# Interpret these as "multipying the odds of winning"
+exp(glm_1$coefficients)
+```
+
+```{r}
+test_df <- data.frame()
+
+predict(glm_1, )
+```
+
 
 **Overall, regression proves difficult to operationalize and interpret.**
 
@@ -592,6 +617,8 @@ played_vs_optimal %>%
 ```
 
 
+
+
 ### Error rates by player 
 
 #### Non-spy turns
@@ -767,6 +794,11 @@ joined_human_ai %>%
 
 ```{r}
 joined_human_ai %>% filter(value==1, Outcome=="Loss")# %>% select()
+```
+
+```{r}
+joined_human_ai %>% 
+  distinct(gamestate_str)
 ```
 
 
