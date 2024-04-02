@@ -93,6 +93,25 @@ def write_known_solutions(knownSolutions, path):
                 cardsAvailiable =[set(map(int, list(game_str[1]))), set(map(int, list(game_str[3])))]
                 f.write('%s:%s\n' % (key, get_solution_save_string(cardsAvailiable, value)))
 
-print(get_solution_from_string("p1-57-p2-47-w-33-g-00-s-01-h-00:v|1.0|s1r|5/7,5|s2f|1.0,0.0|m| $ 0 $ 1.0,0.0 $ 1 $ 1.0,1.0"))
+def reduceProbabilities(probs, cards):
+    # Changes a list of probabilities from 8 long to n-cards long
+    return np.array([probs[i] for i in range(8) if i in cards])
 
-print(get_solution_from_string("p1-57-p2-47-w-33-g-00-s-00-h-00:v|1.0|s1s|1.0,0.0|s2s|1.0,0.0|m| $ 0 $ 1.0,0.0 $ 1 $ 1.0,1.0"))
+def expandProbabilities(probs, cards):
+    strat = np.zeros(shape = 8)
+    reduced_index = 0 # index in reduced-grid strategy
+    for i in range(8):
+        if i in cards:
+            strat[i] = probs[reduced_index]
+            reduced_index += 1
+    return strat
+
+def reduceIndexes(card_list, cardsAvailable):
+    # Turns a list of cards into a list of indexes (8 long -> n cards long)
+    cardsAvailable = list(cardsAvailable)
+    return [cardsAvailable.index(x) for x in card_list]
+
+def expandIndexes(index_list, cardsAvailable):
+    # Turns a list of indexes into a list of cards (n cards long -> 8 long)
+    cardsAvailable = list(cardsAvailable)
+    return [cardsAvailable[x] for x in index_list]

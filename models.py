@@ -6,10 +6,128 @@ np.seterr(divide='ignore', invalid='ignore')
 
 import helperFunctions
 
+# Deterministic solution used by multiple strategies
+def optimal_second_spy_strat(game, reducedMatrix, player, margin = 0.00001):
+    # opponent_choice = None if you are the player who has to choose first
+    # opponent_choice = opponent's card chosen otherwise
+    if player == 1:
+        reducedMatrix = 1 - np.transpose(reducedMatrix)
+    other_player = abs(1-player)
+
+    myCards = list(game.cardsAvailable[player])
+    
+
+    # Going second, we know what opponent chose
+    
+    # If we're player 2, transpose and reverse the values of the matrix
+
+    # For each choice the opponent could make, we have a list of cards we could play
+    ans = [] # Placeholder list
+    opp_cards = list(game.cardsAvailable[other_player])
+
+    
+    reduced_i = 0 
+    for i in range(game.game_size):
+        if i in opp_cards:
+            #opponent_column = int(opp_cards.index(opponent_choice))
+            possibleValues = reducedMatrix[:,reduced_i]
+            bestVal = np.max(possibleValues)
+            bestIndexes = list(np.flatnonzero(abs(possibleValues-bestVal) < margin))
+            bestCards = [myCards[x] for x in bestIndexes]  # A list of all valid cards to play (ex. "[4,6,7]" if each of those cards is equally viable)
+            ans.append(bestCards)
+            reduced_i += 1
+        else:
+            ans.append([])
+    
+    return ans
+
+
+# Agents (models)
+
+class defeatStrategy:
+    # This AI knows what strategy its opponent is playing and counters it perfectly
+    # This is similar to how the Optimal AI decides which cards to play from an opponent's spy play
+    def __init__(self, opponentAI):
+        self.opponent = opponentAI
+
+    def get_strategy(self, game, reducedMatrix, player, margin = 0.00001):
+        oppStrat = self.opponent.get_strategy(game, reducedMatrix, abs(1-player))
+        oppStrat = helperFunctions.reduceProbabilities(oppStrat, game.cardsAvailable[abs(1-player)])
+
+        if player == 1:
+            reducedMatrix = 1 - np.transpose(reducedMatrix)
+
+        myCards = list(game.cardsAvailable[player])
+
+        cardValues = np.matmul(np.array(oppStrat), np.transpose(reducedMatrix))
+        
+        best_value = -np.inf
+        chosenCards = []
+        row_i = 0
+        for i, cardVal in enumerate(cardValues):
+            if abs(best_value - cardVal) < margin: # If this card is the same as others, we will also use it
+                chosenCards.append(myCards[i])
+            elif cardVal > best_value: 
+                # If this card is better, reset the list and use it
+                best_value = cardVal
+                chosenCards = [myCards[i]]
+            
+            row_i += 1
+            
+        ans = np.zeros(8)
+        ans[chosenCards] = 1/len(chosenCards)
+
+        if abs(sum(ans) - 1) > margin:
+            print(f"ERROR in first turn solve - invalid response: {ans}")
+
+        return ans
+    
+    def get_first_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
+        oppStrat = self.opponent.get_second_spy_strat(game, reducedMatrix, abs(1-player))
+        oppStrat = [oppStrat[i] for i in list(game.cardsAvailable[player])] # Remove the 'None' strategies for cards you don't have
+
+        if player == 1:
+            reducedMatrix = 1 - np.transpose(reducedMatrix)
+
+        best_value = -np.inf
+        chosenCards = []
+        for i, valueRow in enumerate(reducedMatrix):
+            oppPossibilities = helperFunctions.reduceIndexes(oppStrat[i], game.cardsAvailable[abs(1-player)]) # List of cards opponent would play against this choice
+            possibleValues = valueRow[oppPossibilities]
+            avgValue = np.mean(possibleValues)
+            if abs(avgValue - best_value) < margin:
+                chosenCards.append(i)
+            elif avgValue > best_value:
+                chosenCards = [i]
+                best_value = avgValue
+
+        chosenCards = helperFunctions.expandIndexes(chosenCards, game.cardsAvailable[player]) # convert to 8-long
+        ans = np.zeros(8)
+        ans[chosenCards] = 1/len(chosenCards)
+
+        return ans
+
+
+
+        
+    
+    def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
+        return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
+
 class fullRandom:
     def get_strategy(self, game, reducedMatrix, player):
         card_count = len(game.cardsAvailable[0])
-        return [1/card_count]*card_count
+
+        return [1/card_count if i in game.cardsAvailable[player] else 0 for i in range(8)]
+    
+    def get_first_spy_strat(self, game, reducedMatrix, player):
+        card_count = len(game.cardsAvailable[0])
+
+        return [1/card_count if i in game.cardsAvailable[player] else 0 for i in range(8)]
+    
+    def get_second_spy_strat(self, game, reducedMatrix, player):
+        base_strat = list(game.cardsAvailable[player])
+        return [base_strat if i in game.cardsAvailable[abs(1-player)] else None for i in range(8)] 
     
 class savedSimplexOptimal:
     # This plays by the Simplex optimal solution. It does not solve the game.
@@ -27,8 +145,18 @@ class savedSimplexOptimal:
         # Get the strategy for the appropriate player
         strat = self.knownSolutions[game.get_game_str()][1][player]
 
-        # Next, subset the list of probabilities to only those for available cards
-        strat = strat[list(game.cardsAvailable[player])] 
+        return strat
+    
+    def get_first_spy_strat(self, game, reducedMatrix, player):
+        # Get the strategy for the appropriate player
+        strat = self.knownSolutions[game.get_game_str()][1][player]
+
+        return strat
+
+    def get_second_spy_strat(self, game, reducedMatrix, player):
+        # Get the strategy for the appropriate player
+        strat = self.knownSolutions[game.get_game_str()][1][player]
+
         return strat
     
 class simplexSolver:
@@ -110,12 +238,7 @@ class simplexSolver:
         optimal_strat = self.aggregate_solution(game, reducedMatrix, player)
 
         # Convert reduced-from strategy into long-form strategy
-        strat = np.zeros(shape = 8)
-        reduced_index = 0 # index in reduced-grid strategy
-        for i in range(8):
-            if i in game.cardsAvailable[player]:
-                strat[i] = optimal_strat[reduced_index]
-                reduced_index += 1
+        strat = helperFunctions.expandProbabilities(optimal_strat, game.cardsAvailable[player])
 
         return strat
     
@@ -135,6 +258,7 @@ class simplexSolver:
             # We give it a much more lenient margin for diverse play, as it doesn't even effect optimal play values
             if abs(value - row_min) < margin and abs(row_sum - best_row_sum) < row_sum_margin: # If this card is the same as others, we will also use it
                 chosenCards.append(myCards[row_i])
+                best_row_sum = max(best_row_sum, best_row_sum)
             elif row_min > value or (abs(value - row_min) < margin and row_sum > best_row_sum): 
                 # If this card is better, reset the list and use it
                 # It can be either:
@@ -155,35 +279,4 @@ class simplexSolver:
         return ans
 
     def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
-        # opponent_choice = None if you are the player who has to choose first
-        # opponent_choice = opponent's card chosen otherwise
-        if player == 1:
-            reducedMatrix = 1 - np.transpose(reducedMatrix)
-        other_player = abs(1-player)
-
-        myCards = list(game.cardsAvailable[player])
-        
-
-        # Going second, we know what opponent chose
-        
-        # If we're player 2, transpose and reverse the values of the matrix
-
-        # For each choice the opponent could make, we have a list of cards we could play
-        ans = [] # Placeholder list
-        opp_cards = list(game.cardsAvailable[other_player])
-
-        
-        reduced_i = 0 
-        for i in range(game.game_size):
-            if i in opp_cards:
-                #opponent_column = int(opp_cards.index(opponent_choice))
-                possibleValues = reducedMatrix[:,reduced_i]
-                bestVal = np.max(possibleValues)
-                bestIndexes = list(np.flatnonzero(abs(possibleValues-bestVal) < margin))
-                bestCards = [myCards[x] for x in bestIndexes]  # A list of all valid cards to play (ex. "[4,6,7]" if each of those cards is equally viable)
-                ans.append(bestCards)
-                reduced_i += 1
-            else:
-                ans.append([])
-        
-        return ans
+        return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
