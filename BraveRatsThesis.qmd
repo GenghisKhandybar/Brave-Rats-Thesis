@@ -22,9 +22,10 @@ library(tidymodels)
 
 ```{r}
 # Main data
+# Previous filename: "SolutionFiles/optimalSolutionNew.txt"
 
-allTurns <- read.csv("SolutionFiles/optimalSolutionNew.txt", header = FALSE, sep = "|", col.names = c("gamestate", "value", ".s1","p1_optimal",".s2", "p2_optimal", ".m", "value_matrix")) %>% 
-  mutate(gamestate = substr(gamestate,1, nchar(gamestate)-2)) %>% # Fixing error where extra characters ":v" are added to gamestate
+allTurns <- read.csv("SolutionFiles/updatedOptimalSolution.txt", header = FALSE, sep = "|", col.names = c("gamestate", "value", "s1_type","p1_optimal","s2_type", "p2_optimal", ".m", "value_matrix")) %>% 
+  mutate(gamestate = substr(gamestate,1, nchar(gamestate)-2)) %>%
   mutate(gamestate_str = gamestate) %>% #Making a copy to be used as row labels
   separate(gamestate, c(".1", "p1_cards", ".2", "p2_cards", ".3", "wins", ".4", "generals", ".5", "spies", ".6", "holds"), sep = "-")
 
@@ -61,6 +62,12 @@ allTurns <- allTurns %>% mutate(cards_left = nchar(p1_cards),
          p1_holds = as.numeric(substring(holds,1,1)),
          p2_holds = as.numeric(substring(holds,2,2))
          )
+
+response_turns <- allTurns %>% 
+  filter(s1_type == "s1r") %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "p2_card_first", values_to = "optimal_responses") %>% 
+  mutate(p2_card_first = as.numeric(substring(p2_card_first,5,6))) %>% 
+  filter(optimal_responses!="")
 
 # c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7")
 # c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7")
