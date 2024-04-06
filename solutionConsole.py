@@ -506,8 +506,11 @@ def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-
         # If file couldn't be read, we'll make a new one
         print(e)
         print(f"Could not find solution. Solving game instead, will save to {path}.")
-
-        solve_game(path, tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60)
+        ans = input("Enter 'y' to solve game.")
+        if ans.lower() == 'y':
+            solve_game(path, tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60)
+        else:
+            return
 
     game_loop(knownSolutions, start_gamestr= start_gamestr)
 # %%
@@ -518,6 +521,6 @@ if __name__ == "__main__":
     #solve_game(savePath = "SolutionFiles/updatedOptimalSolution.txt", save_interval = 300, loadFromTempSave="temp_solution.txt")
     #solve_game(savePath = "SolutionFiles/SimplexVsRandom.txt", models=[models.savedSimplexOptimal(path), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/DefeatVsRandom.txt", models=[models.defeatStrategy(models.fullRandom()), models.fullRandom()])
-    solve_game(savePath = "SolutionFiles/SimplexVsDefeat.txt", models=[models.savedSimplexOptimal(path), models.defeatStrategy(models.savedSimplexOptimal(path))])
-    #default_console_start(path)
+    #solve_game(savePath = "SolutionFiles/SimplexVsDefeat.txt", models=[models.savedSimplexOptimal(path), models.defeatStrategy(models.savedSimplexOptimal(path))])
+    default_console_start(path)
 
