@@ -89,8 +89,14 @@ normal_turns <- allTurns %>%
   filter(s1_type != "s1r") %>% 
   mutate(responding_to_card = NA) # This indicates that this entry is not a response to an opponent's spied card
 
+
+
 allOptimalStrategies <- rbind(normal_turns, response_turns) %>% 
   mutate(across(matches("^P[12]_o"), ~as.numeric(.))) # Turn all "optimal probability" to numeric
+
+# Saving Memory
+remove(response_turns)
+remove(normal_turns)
 
 # Lists of optimal strategy columns
 # c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7")
@@ -479,7 +485,7 @@ library(rpart)
 library(rpart.plot)
 
 
-tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+tree_mod <- decision_tree(mode = "classification", tree_depth = 3, cost_complexity = double(1)) %>%
   set_engine("rpart") %>%
   set_mode("classification")
 
@@ -513,17 +519,14 @@ In this section I use decision trees to see how easy it is to tell whether a car
 # This dataset looks card-by-card whether each card is viable in a particular gamestate.
 # The idea is that if it's simple to tell which cards are viable, we can more easily figure out the play patterns that will work
 
-card_viability <- allTurns %>% 
+card_viability <- allOptimalStrategies %>% 
   filter(p2_spy==FALSE, turn <8) %>% 
   # Extracting the optimal card for each player
   pivot_longer(cols = c( "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "p1_card", values_to = "p1_optimal_prob") %>% 
   filter(!is.na(p1_optimal_prob)) %>% 
   mutate(p1_card=as.factor(substring(p1_card,5,6)),
-         p1_card_viable = ifelse(p1_optimal_prob>0,"viable","not viable")) %>% 
-  pivot_longer(cols = c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7"), names_to = "p2_card", values_to = "p2_optimal_prob") %>% 
-  filter(!is.na(p2_optimal_prob)) %>% 
-  mutate(p2_card=as.factor(substring(p2_card,5,6)),
-         p2_card_viable = ifelse(p2_optimal_prob>0,"viable","not viable"))
+         p1_card_viable = ifelse(p1_optimal_prob>0,"viable","not viable"))
+  
 
 # card_viability %>% sample_n(10)
 ```
@@ -796,7 +799,7 @@ df = 239 + 797 - 2
 pt(t, df=df, lower.tail=TRUE)
 ```
 
-There appears to be a small, but statistically insignificant difference inbetween the value changes from plays that are "miastakes" vs. non-mistakes.
+There appears to be a small, but statistically insignificant difference between the value changes from plays that are "miastakes" vs. non-mistakes.
 
 ### Do some cards tend to increase value?
 
