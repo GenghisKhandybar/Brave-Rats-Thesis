@@ -12,6 +12,9 @@ allTurns = optimal gameplay data
 braverats = human data
 
 ```{r}
+#| label: packages-setup
+#| warning: false
+
 library(tidyverse)
 library(tidyclust)
 library(tclust)
@@ -63,11 +66,13 @@ allTurns <- allTurns %>% mutate(cards_left = nchar(p1_cards),
          p2_holds = as.numeric(substring(holds,2,2))
          )
 
+# For response turns, we have a separate distribution of (equal) probabilities for each opponent's choice
 response_turns <- allTurns %>% 
   filter(s1_type == "s1r") %>% 
-  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "p2_card_first", values_to = "optimal_responses") %>% 
-  mutate(p2_card_first = as.numeric(substring(p2_card_first,5,6))) %>% 
-  filter(optimal_responses!="") %>% 
+  # Each "optimal" here is whether 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "responding_to_card", values_to = "optimal_responses") %>% 
+  mutate(responding_to_card = as.numeric(substring(responding_to_card,5,6))) %>% 
+  filter(optimal_responses!="") %>% # Cards opponent doesn't have have "" optimal strings
   mutate(num_possibilities = str_length(optimal_responses),
          p1_o0 = ifelse(p1_c0, ifelse(grepl("0",optimal_responses), 1/num_possibilities, 0), NA),
          p1_o1 = ifelse(p1_c1, ifelse(grepl("1",optimal_responses), 1/num_possibilities, 0), NA),
@@ -77,21 +82,24 @@ response_turns <- allTurns %>%
          p1_o5 = ifelse(p1_c5, ifelse(grepl("5",optimal_responses), 1/num_possibilities, 0), NA),
          p1_o6 = ifelse(p1_c6, ifelse(grepl("6",optimal_responses), 1/num_possibilities, 0), NA),
          p1_o7 = ifelse(p1_c7, ifelse(grepl("7",optimal_responses), 1/num_possibilities, 0), NA)
-  )
+  ) %>% 
+  select(-num_possibilities, -optimal_responses)
 
+normal_turns <- allTurns %>% 
+  filter(s1_type != "s1r") %>% 
+  mutate(responding_to_card = NA) # This indicates that this entry is not a response to an opponent's spied card
+
+allOptimalStrategies <- rbind(normal_turns, response_turns) %>% 
+  mutate(across(matches("^P[12]_o"), ~as.numeric(.))) # Turn all "optimal probability" to numeric
+
+# Lists of optimal strategy columns
 # c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7")
 # c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7")
 ```
 
 ```{r}
-allTurns %>% 
-  filter(turn == 2) %>% filter(p1_c2==FALSE) %>% 
-  head()
-```
-
-```{r}
 # A dataframe of just the optimal probabilities (0 for non-possibilities)
-p1_optimal_turns <- allTurns %>% 
+p1_optimal_turns <- allOptimalStrategies %>% 
   #filter(turn <=5) %>% 
   filter(p1_spy == 0 && p2_spy == 0) %>% 
   select("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7") %>% 
@@ -106,16 +114,16 @@ source("readHumanData.r")
 ```
 
 ```{r}
-joined_human_ai <- braverats %>% left_join(allTurns, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
+joined_human_ai <- braverats %>% left_join(allOptimalStrategies, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
                                                 "p1_wins", "p2_wins", "p1_holds", "p2_holds",
-                                                "p1_spy", "p2_spy", "p1_general", "p2_general"))
+                                                "p1_spy", "p2_spy", "p1_general", "p2_general", "responding_to_card"))
 ```
 
 # EDA
 
-```{r}
-hist(allTurns$value)
-```
+## Number of turns
+
+Number of (non-terminal) states for each turn of game
 
 ```{r}
 allTurns %>% 
@@ -127,6 +135,26 @@ allTurns %>%
   summarize(count = n())
 ```
 
+Distinct strategies by turn (counting multiple strategies on spy turns)
+
+```{r}
+allOptimalStrategies %>% 
+  ggplot(aes(x = turn)) +
+  geom_histogram()
+
+allOptimalStrategies %>% 
+  group_by(turn) %>% 
+  summarize(count = n())
+```
+
+## Values of the turns
+
+```{r}
+hist(allTurns$value)
+```
+
+Plots of value by turn
+
 ```{r}
 allTurns %>% 
   ggplot(aes(x = factor(turn), y = value)) +
@@ -134,28 +162,33 @@ allTurns %>%
 
 allTurns %>% 
   ggplot(aes(x = factor(turn), y = value)) +
-  geom_point()
-```
+  geom_point(alpha = 0.05)
 
-```{r}
 allTurns %>% 
   ggplot(aes(x = value)) +
   geom_histogram() +
   facet_grid(rows = vars(turn), scales = "free_y")
 ```
 
+For each card, the distribution of what its optimal probability is when it's an option.
+
 ```{r}
-card_optimals <- allTurns %>% 
-  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") 
+card_optimals <- allOptimalStrategies %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") %>% 
+  filter(!is.na(optimal_prob))
 
 card_optimals %>% 
+  filter(spies == "00") %>% 
   ggplot(aes(x = optimal_prob)) +
   geom_histogram(bins = 10) +
   facet_grid(rows = vars(card))
 ```
 
+Average of each card, by turn
+
 ```{r}
 card_optimals %>% 
+  filter(spies == "00") %>% 
   select(card,turn,optimal_prob) %>% 
   filter(!is.na(optimal_prob)) %>% 
   group_by(card,turn) %>% 
@@ -265,7 +298,7 @@ human_clusters %>%
 (This task may be better to do in Python actually? Looking into GLM to do the transformation.)
 
 ```{r}
-df_predictors <- allTurns %>% 
+df_predictors <- allOptimalStrategies %>% 
   #filter(p1_spy==0, p2_spy==0) %>% 
   select(
   p1_o0,p1_o1,p1_o2,p1_o3,p1_o4,p1_o5,p1_o6,p1_o7, value, turn, #Outputs
@@ -410,7 +443,7 @@ Given that card X is in hand and you've been spied, how often is card X optimal 
 This table is split by turn of game. Contrary to prior belief, card 0 is not the overwhelming preferrence even when it's an option (<50% until turn 5).
 
 ```{r}
-allTurns %>% 
+allOptimalStrategies %>% 
   filter(p2_spy==1) %>% 
   group_by(turn) %>% 
   summarize(across(c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), ~mean(.x, na.rm=TRUE)))
@@ -419,7 +452,7 @@ allTurns %>%
 A manual survey of what cards are optimal during different turns.
 
 ```{r}
-spy_optimal_cards <- allTurns %>% 
+spy_optimal_cards <- allOptimalStrategies %>% 
   filter(p2_spy==TRUE) %>% 
   #select(p1_cards, p2_cards, "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7", "p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7") %>% 
   # Extracting the optimal card for each player

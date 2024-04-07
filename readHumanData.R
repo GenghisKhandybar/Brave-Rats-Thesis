@@ -379,7 +379,8 @@ braverats <- braverats %>%
          p1_general = P1_Plus_Two, p2_general = P2_Plus_Two,
          p1_name = P1_name, p2_name = P2_name
          ) %>% 
-  mutate(across(matches("^P[12]_C"), ~as.logical(.))) %>% 
+  mutate(across(matches("^P[12]_C"), ~as.logical(.)),
+         responding_to_card = ifelse(p1_spy, P2, NA)) %>% # Variable for joins. On spy response turns for P1: P2's card. Else: NA
   select(-P1_Spied, -P2_Spied, -P1_Strength, -P2_Strength, -Round_Winner_P1, Round_Winner_P2)
 
 colnames(braverats) <- sub('P1_C', 'p1_c', colnames(braverats), fixed=TRUE)
