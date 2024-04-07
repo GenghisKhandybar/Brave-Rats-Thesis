@@ -67,7 +67,17 @@ response_turns <- allTurns %>%
   filter(s1_type == "s1r") %>% 
   pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "p2_card_first", values_to = "optimal_responses") %>% 
   mutate(p2_card_first = as.numeric(substring(p2_card_first,5,6))) %>% 
-  filter(optimal_responses!="")
+  filter(optimal_responses!="") %>% 
+  mutate(num_possibilities = str_length(optimal_responses),
+         p1_o0 = ifelse(p1_c0, ifelse(grepl("0",optimal_responses), 1/num_possibilities, 0), NA),
+         p1_o1 = ifelse(p1_c1, ifelse(grepl("1",optimal_responses), 1/num_possibilities, 0), NA),
+         p1_o2 = ifelse(p1_c2, ifelse(grepl("2",optimal_responses), 1/num_possibilities, 0), NA),
+         p1_o3 = ifelse(p1_c3, ifelse(grepl("3",optimal_responses), 1/num_possibilities, 0), NA),
+         p1_o4 = ifelse(p1_c4, ifelse(grepl("4",optimal_responses), 1/num_possibilities, 0), NA),
+         p1_o5 = ifelse(p1_c5, ifelse(grepl("5",optimal_responses), 1/num_possibilities, 0), NA),
+         p1_o6 = ifelse(p1_c6, ifelse(grepl("6",optimal_responses), 1/num_possibilities, 0), NA),
+         p1_o7 = ifelse(p1_c7, ifelse(grepl("7",optimal_responses), 1/num_possibilities, 0), NA)
+  )
 
 # c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7")
 # c("p2_o0","p2_o1","p2_o2","p2_o3","p2_o4","p2_o5","p2_o6","p2_o7")
