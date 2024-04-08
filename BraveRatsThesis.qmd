@@ -649,6 +649,8 @@ played_vs_optimal %>% sample_n(8)
 
 Which cards are most often played when they shouldn't have?
 
+### Mistakes in non-spy turns
+
 Counts of all absolute mistakes made by card
 
 ```{r}
@@ -669,10 +671,47 @@ played_vs_optimal %>%
   pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
 ```
 
+### Spy turns
+
+When going first (opponent used spy):
+
+```{r}
+# Overall
+played_vs_optimal %>% 
+  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob == 0, this_card_played == 1) %>% 
+  group_by(this_card) %>% #, turn
+  summarise(n_mistakes = n())
 
 
+# Turn by turn
+played_vs_optimal %>% 
+  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob == 0, this_card_played == 1) %>% 
+  group_by(this_card, turn) %>% #
+  summarise(n_mistakes = n()) %>% 
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+```
 
-### Error rates by player 
+What should've been played instead? (by turn)
+
+```{r}
+# Turn by turn
+played_vs_optimal %>% 
+  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob > 0, this_card_played == 0) %>% 
+  group_by(this_card, turn) %>% #
+  summarise(n_mistakes = n()) %>% 
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+```
+
+Looking at specific error turns
+
+```{r}
+played_vs_optimal %>% 
+  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob > 0, this_card_played == 0) %>% 
+  filter(this_card == 2, turn == 3)
+```
+
+
+## Error rates by player 
 
 #### Non-spy turns
 
