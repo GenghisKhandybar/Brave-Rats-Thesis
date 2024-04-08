@@ -337,14 +337,18 @@ def print_solution(statename, knownSolutions):
 def standardize_decimal(num):
     return str(round(float(num), 4)).ljust(6, " ")
 
-
-
-
 def create_solution_str(game, tup):
     p1_cards_list = list(game.cardsAvailable[0])
     p2_cards_list = list(game.cardsAvailable[1])
-    p1_probs = [tup[1][0][i] for i in p1_cards_list] # reduced forms
-    p2_probs = [tup[1][1][i] for i in p2_cards_list]
+
+    if tup[3][0] != "r": # Not a spy response
+        p1_probs = [tup[1][0][i] for i in p1_cards_list] # reduced form
+    else:
+        p1_probs = [tup[1][0][i] for i in p2_cards_list]
+    if tup[3][1] != "r": # Not a spy response
+        p2_probs = [tup[1][1][i] for i in p2_cards_list] # reduced form
+    else:
+        p2_probs = [tup[1][1][i] for i in p1_cards_list]
 
     ans = "State id: %s"%(game.get_game_str())
     ans += '\n\nWins: %s    Holds: %s'%(", ".join(map(str,game.wins)), ", ".join(map(str,game.holds)))
@@ -354,32 +358,32 @@ def create_solution_str(game, tup):
     if tup[3][0] != "r": # Not a spy response
         ans += ("\nP1 Optimal Strategy: " + ", ".join(map(standardize_decimal, p1_probs))) # ,np.round(tup[1][0],4))))
     if tup[3][1] == "r":
-        ans += f"\nP2 Response Cards:   {', '.join(['/'.join([str(y) for y in x]).ljust(6, ' ') for x in p2_probs])}"
+        ans += f"\nP2 Response Cards:   {', '.join(['/'.join([str(y) for y in x]).ljust(6, ' ') for x in p2_probs])}\n"
     ans += ("\nP2 Cards:            " + ",      ".join(map(str,game.cardsAvailable[1])))
     if tup[3][1] != "r": # Not a spy response
         ans += ("\nP2 Optimal Strategy: " + ', '.join(map(standardize_decimal, p2_probs))) 
     if tup[3][0] == "r":
-        ans += f"\nP1 Response Cards:   {', '.join(['/'.join([str(y) for y in x]).ljust(6, ' ') for x in p1_probs])}"
+        ans += f"\nP1 Response Cards:   {', '.join(['/'.join([str(y) for y in x]).ljust(6, ' ') for x in p1_probs])}\n"
     ans += "\n\n                          P2"
     
-    ans += "\nP1      "# + ",       ".join(map(str,game.cardsAvailable[1])))
+    ans += "\nP1       "# + ",       ".join(map(str,game.cardsAvailable[1])))
     
 
     if tup[3][0] != "r": # Not a spy response
-        p1_prob_strings = ["(" + str(round(100*x)).rjust(2) + "%) " for x in p1_probs]
+        p1_prob_strings = ["(" + str(round(100*x)).rjust(3) + "%) " for x in p1_probs]
     else:
-        p1_prob_strings = ["     "]*8
+        p1_prob_strings = ["       "]*8
     if tup[3][1] != "r": # Not a spy response
-        p2_prob_strings = ["(" + str(round(100*x)).rjust(2) + "%) " for x in p2_probs]
+        p2_prob_strings = ["(" + str(round(100*x)).rjust(3) + "%) " for x in p2_probs]
     else:
-        p2_prob_strings = ["     "]*8
+        p2_prob_strings = ["       "]*8
 
     for i in range(len(p2_cards_list)):
         ans += f" {p2_cards_list[i]} {p2_prob_strings[i]}"
         #ans += '%s (%s%%)  '%(str(p2_cards_list[i]), str(round(100*tup[1][1][i])).rjust(2))
 
     for i in range(len(p1_cards_list)):
-        ans += f"\n{p1_cards_list[i]} {p1_prob_strings[i]} {' | '.join(map(standardize_decimal,tup[2][i]))}"
+        ans += f"\n{p1_cards_list[i]} {p1_prob_strings[i]} {'  | '.join(map(standardize_decimal,tup[2][i]))}"
         #ans += '\n%s (%s%%) %s' % (str(p1_cards_list[i]), str(round(100*tup[1][0][i])).rjust(2), " | ".join(map(standardize_decimal,tup[2][i])))
 
     #ans += ("\nCurrent Game Matrix: \n" + str(np.round(tup[2], 5)))
@@ -425,7 +429,7 @@ def play_game(game, knownSolutions, players):
                 print(f"Choosing randomly from equally valid cards {', '.join([str(x) for x in possibilities])}")
                 plays[player] = np.random.choice(possibilities)
             else: # Either simultaneous-move or first move
-                probs = np.array([x for x in solution[1][player] if x is not None])
+                probs = np.array([solution[1][player][i] for i in range(8) if i in game.cardsAvailable[player]])
                 probs = probs / sum(probs) # To fix rounding errors
                 plays[player] = list(game.cardsAvailable[player])[np.random.choice(len(probs), 1, p = probs)[0]]
             print(f"AI Choice: {plays[player]}")
@@ -435,15 +439,22 @@ def play_game(game, knownSolutions, players):
             print(f"Random Choice: {plays[player]}")
     
     print("\nPLAYING CARDS %d AND %d -----------------------------------------------\n"%(plays[0], plays[1]))
-
     game.advanceGameState(plays)
+    if game.gameWinner == None:
+        print("Press enter to continue, or enter 'n' to quit.")
+        _ = input()
+        if _ == "n":
+            return
+    else:
+        print('!!!!!!!! WINNER: PLAYER %d !!!!!!!!'%(game.gameWinner + 1))
+        return
+
+    
     #print(knownSolutions[game.get_game_str()])
     print_solution(game.get_game_str(), knownSolutions)
+    play_game(game, knownSolutions, players)
 
-    if game.gameWinner == None:
-        print("Next Round?")
-        _ = input()
-        play_game(game, knownSolutions, players)
+    
 
 # %%
 
