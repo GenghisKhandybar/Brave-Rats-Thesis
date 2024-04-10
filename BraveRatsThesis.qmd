@@ -1,5 +1,7 @@
 ---
 title: "BraveRatsThesis"
+code-fold: true
+self-contained: true
 format:
   html:
     toc: true
@@ -105,21 +107,23 @@ remove(normal_turns)
 
 ```{r}
 # A dataframe of just the optimal probabilities (0 for non-possibilities)
+# Used for clustering later
+
 p1_optimal_turns <- allOptimalStrategies %>% 
   #filter(turn <=5) %>% 
-  filter(p1_spy == 0 && p2_spy == 0) %>% 
+  filter(p1_spy == 0 & p2_spy == 0) %>% 
   select("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7") %>% 
   mutate_all(~replace(., is.na(.), 0))
 ```
 
 ## Human data
 
-```{r}
+```{r read-human-data}
 #braverats <- read.csv("BraveRatsData.csv")
 source("readHumanData.r")
 ```
 
-```{r}
+```{r human-joined-ai}
 joined_human_ai <- braverats %>% left_join(allOptimalStrategies, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
                                                 "p1_wins", "p2_wins", "p1_holds", "p2_holds",
                                                 "p1_spy", "p2_spy", "p1_general", "p2_general", "responding_to_card"))
@@ -225,11 +229,11 @@ df_clusters %>%
   facet_grid(rows = vars(cluster_num))
 ```
 
-```{r}
+```{r cluster-descriptions}
 # Total number of turns in each cluster
-cluster_info <- allTurns %>% 
+cluster_info <- allOptimalStrategies %>% 
   #filter(turn <=5) %>% 
-  filter(p1_spy == 0 && p2_spy == 0) %>% 
+  filter(p1_spy == 0 & p2_spy == 0) %>% 
   mutate(cluster = kmeans_fit$fit$cluster)
 
 cluster_info %>% group_by(cluster) %>% 
@@ -247,12 +251,16 @@ cluster_info %>%
   summarize(count = n()) %>% 
   pivot_wider(names_from ="turn", names_prefix="Turn_", values_from=count, id_cols=cluster)
 
-# How are the optimal probabilities distributed in real turns from this cluster?
+# How are the optimal probabilities distributed in real turns an example cluster?
 # TRY TO ADD CENTROIDS TO THIS
-cluster_info %>% 
+df_cluster_probs <- cluster_info %>% 
   filter(cluster==3) %>% 
   pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"),
                names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") %>% 
+  filter(!is.na(optimal_prob)) %>% 
+  select(card, optimal_prob) 
+
+df_cluster_probs %>% 
   ggplot(aes(x = optimal_prob)) +
   geom_histogram(bins = 10) +
   facet_grid(rows = vars(card))
@@ -434,6 +442,7 @@ exp(glm_1$coefficients)
 ```
 
 ```{r}
+#| eval = false
 test_df <- data.frame()
 
 predict(glm_1, )
@@ -635,8 +644,9 @@ In this section, we're looking at every card a player had the option to play, th
 played_vs_optimal <- joined_human_ai %>% 
   pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
   mutate(this_card = substring(card_untrimmed, 5,6),
-         this_card_played = if_else(P1==this_card, 1, 0)) %>% 
-  select(Game, turn, p1_name, this_card, this_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy) %>% 
+         this_card_played = if_else(P1==this_card, 1, 0),
+         actual_card_played = P1) %>% 
+  select(Game, turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy) %>% 
   filter(!is.na(optimal_prob)) # Removing invalid cards
 
 played_vs_optimal %>% sample_n(8)
@@ -673,7 +683,7 @@ played_vs_optimal %>%
 
 ### Spy turns
 
-When going first (opponent used spy):
+####When going first (opponent used spy):
 
 ```{r}
 # Overall
@@ -702,12 +712,71 @@ played_vs_optimal %>%
   pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
 ```
 
-Looking at specific error turns
+Actual card vs. optimal card/cards
 
 ```{r}
 played_vs_optimal %>% 
+  filter(turn==3) %>% 
   filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob > 0, this_card_played == 0) %>% 
-  filter(this_card == 2, turn == 3)
+  group_by(this_card, actual_card_played) %>% #
+  summarise(n_mistakes = n()) %>% 
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = actual_card_played) %>% 
+  arrange(actual_card_played)
+```
+
+
+#### When going second (opponent used spy)
+
+```{r}
+# Overall
+played_vs_optimal %>% 
+  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
+  group_by(this_card) %>% #, turn
+  summarise(n_mistakes = n())
+
+
+# Turn by turn
+played_vs_optimal %>% 
+  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
+  group_by(this_card, turn) %>% #
+  summarise(n_mistakes = n()) %>% 
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+```
+
+What should've been played instead? (by turn)
+
+```{r}
+# Turn by turn
+played_vs_optimal %>% 
+  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob > 0, this_card_played == 0) %>% 
+  group_by(this_card, turn) %>% #
+  summarise(n_mistakes = n()) %>% 
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+```
+
+Actual card vs. optimal card/cards
+
+```{r}
+played_vs_optimal %>% 
+  filter(turn==3) %>% 
+  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob > 0, this_card_played == 0) %>% 
+  group_by(this_card, actual_card_played) %>% #
+  summarise(n_mistakes = n()) %>% 
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = actual_card_played) %>% 
+  arrange(actual_card_played)
+```
+
+#### Looking at specific error turns
+
+Change the filters here to see the type of turn you want
+
+```{r }
+played_vs_optimal %>% 
+  filter(this_card == 4) %>% #, turn == 2) %>% # Edit this
+  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob > 0, this_card_played == 0) 
+  
+
+allTurns %>% filter(gamestate_str == 'p1-0134567-p2-0123567-w-02-g-00-s-10-h-00')
 ```
 
 
