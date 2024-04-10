@@ -13,8 +13,7 @@ editor: visual
 allTurns = optimal gameplay data
 braverats = human data
 
-```{r}
-#| label: packages-setup
+```{r packages-setup}
 #| warning: false
 
 library(tidyverse)
@@ -25,7 +24,7 @@ library(tidymodels)
 
 ## Nash optimal data
 
-```{r}
+```{r import-optimal}
 # Main data
 # Previous filename: "SolutionFiles/optimalSolutionNew.txt"
 
@@ -442,7 +441,7 @@ exp(glm_1$coefficients)
 ```
 
 ```{r}
-#| eval = false
+#| eval = FALSE
 test_df <- data.frame()
 
 predict(glm_1, )
