@@ -189,7 +189,7 @@ class ratGame:
 
         return state_info
 
-    def getValue(self, knownSolutions, models, savePath = "temp_solution.txt", save_interval = 600, report_interval = 60, report_margin = 0.000001):
+    def getValue(self, knownSolutions, models, mirror_solutions = False, savePath = "temp_solution.txt", save_interval = 600, report_interval = 60, report_margin = 0.000001):
         # Returns the value of the current gamestate
         # Strategy can either be "Optimal" or an object with property get_strategy that takes a gamestate (and player #)
         # and returns a list of probabilities for each of that player's possible cards.
@@ -244,7 +244,7 @@ class ratGame:
         # Check if we've already computed this turn.
         # Note: It's still necessary that we calculated the up-stream values above, to traverse subsequent turns.
         reverse_str = helperFunctions.reverseGameState(game_str)
-        if type(models[0]) is type(models[1]) and reverse_str in knownSolutions:
+        if mirror_solutions and reverse_str in knownSolutions:
             reverse_solution = knownSolutions[reverse_str]
             val = 1 - reverse_solution[0]
             strats = [reverse_solution[1][1], reverse_solution[1][0]]
@@ -482,7 +482,7 @@ def game_loop(knownSolutions, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00
         if(response == "n"):
             break
 
-def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00', 
+def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00', mirror_solutions = False,
                tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60):
     # This will solve the game
     # temp_solution will save as a txt file periodically in case the solution process is interrupted
@@ -497,7 +497,7 @@ def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00
         knownSolutions = {}
 
     testGame = ratGame(start_gamestr)
-    testGame.getValue(knownSolutions, savePath = tempSavePath, models= models, save_interval= save_interval, report_interval = report_interval)
+    testGame.getValue(knownSolutions, mirror_solutions=mirror_solutions, savePath = tempSavePath, models= models, save_interval= save_interval, report_interval = report_interval)
 
     helperFunctions.write_known_solutions(knownSolutions, savePath)
 
@@ -519,7 +519,7 @@ def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-
         print(f"Could not find solution. Solving game instead, will save to {path}.")
         ans = input("Enter 'y' to solve game.")
         if ans.lower() == 'y':
-            solve_game(path, tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60)
+            solve_game(path, mirror_solutions = True,tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60)
         else:
             return
 
@@ -533,5 +533,6 @@ if __name__ == "__main__":
     #solve_game(savePath = "SolutionFiles/SimplexVsRandom.txt", models=[models.savedSimplexOptimal(path), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/DefeatVsRandom.txt", models=[models.defeatStrategy(models.fullRandom()), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/SimplexVsDefeat.txt", models=[models.savedSimplexOptimal(path), models.defeatStrategy(models.savedSimplexOptimal(path))])
-    default_console_start(path)
+    solve_game(savePath = "SolutionFiles/hypotheticalGeneralStart.txt", start_gamestr='p1-01234567-p2-01234567-w-00-g-10-s-00-h-00')
+    #default_console_start(path)
 
