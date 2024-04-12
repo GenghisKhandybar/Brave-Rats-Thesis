@@ -7,6 +7,42 @@ np.seterr(divide='ignore', invalid='ignore')
 import helperFunctions
 
 # Deterministic solution used by multiple strategies
+def optimal_first_spy_strat(game, reducedMatrix, player, margin = 0.00001, row_sum_margin = 0.005):
+    if player == 1:
+        reducedMatrix = 1 - np.transpose(reducedMatrix)
+
+    myCards = list(game.cardsAvailable[player])
+
+    value = -np.inf
+    best_row_sum = -np.inf
+    chosenCards = []
+    row_i = 0
+    for row in reducedMatrix:
+        row_min = min(row)
+        row_sum = sum(row) # row_sum is secondary, not as important. It represents how good the card is on average
+        # We give it a much more lenient margin for diverse play, as it doesn't even effect optimal play values
+        if abs(value - row_min) < margin and abs(row_sum - best_row_sum) < row_sum_margin: # If this card is the same as others, we will also use it
+            chosenCards.append(myCards[row_i])
+            best_row_sum = max(best_row_sum, best_row_sum)
+        elif row_min > value or (abs(value - row_min) < margin and row_sum > best_row_sum): 
+            # If this card is better, reset the list and use it
+            # It can be either:
+            # - Better value
+            # - Equal value and better row sum
+            value = row_min
+            best_row_sum = row_sum
+            chosenCards = [myCards[row_i]]
+        
+        row_i += 1
+        
+    ans = np.zeros(8)
+    ans[chosenCards] = 1/len(chosenCards)
+
+    if abs(sum(ans) - 1) > margin:
+        print(f"ERROR in first turn solve - invalid response: {ans}")
+
+    return ans
+
 def optimal_second_spy_strat(game, reducedMatrix, player, margin = 0.00001):
     # opponent_choice = None if you are the player who has to choose first
     # opponent_choice = opponent's card chosen otherwise
@@ -43,6 +79,32 @@ def optimal_second_spy_strat(game, reducedMatrix, player, margin = 0.00001):
 
 
 # Agents (models)
+class intuitiveDistribution:
+    def get_strategy(self, game, reducedMatrix, player, margin = 0.000001):
+        # For each card our opponent can pick, we'll find the best card/cards to counter it.
+        card_count = len(game.cardsAvailable[0])
+        if player == 1:
+            reducedMatrix = 1 - np.transpose(reducedMatrix)
+        reduced_strat = np.zeros(card_count)
+
+        max_values = np.max(reducedMatrix, axis=0)
+        indices_within_margin = [
+            np.abs(column - max_val) < margin for column, max_val in zip(np.transpose(reducedMatrix), max_values)
+        ]
+        for valid_responses in indices_within_margin:
+            valid_responses = np.array(valid_responses).astype(int) # Converts booleans to ints
+            valid_responses = valid_responses/sum(valid_responses) # Scales to sum to 1
+            reduced_strat += valid_responses
+        
+        reduced_strat = reduced_strat/card_count # Scales to sum to 1
+
+        return helperFunctions.expandProbabilities(reduced_strat, game.cardsAvailable[player])
+    
+    def get_first_spy_strat(self, game, reducedMatrix, player, margin = 0.00001, row_sum_margin = 0.005):
+        return optimal_first_spy_strat(game, reducedMatrix, player, margin = margin, row_sum_margin = row_sum_margin)
+
+    def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
+        return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
 
 class defeatStrategy:
     # This AI knows what strategy its opponent is playing and counters it perfectly
@@ -243,40 +305,9 @@ class simplexSolver:
         return strat
     
     def get_first_spy_strat(self, game, reducedMatrix, player, margin = 0.00001, row_sum_margin = 0.005):
-        if player == 1:
-            reducedMatrix = 1 - np.transpose(reducedMatrix)
-
-        myCards = list(game.cardsAvailable[player])
-
-        value = -np.inf
-        best_row_sum = -np.inf
-        chosenCards = []
-        row_i = 0
-        for row in reducedMatrix:
-            row_min = min(row)
-            row_sum = sum(row) # row_sum is secondary, not as important. It represents how good the card is on average
-            # We give it a much more lenient margin for diverse play, as it doesn't even effect optimal play values
-            if abs(value - row_min) < margin and abs(row_sum - best_row_sum) < row_sum_margin: # If this card is the same as others, we will also use it
-                chosenCards.append(myCards[row_i])
-                best_row_sum = max(best_row_sum, best_row_sum)
-            elif row_min > value or (abs(value - row_min) < margin and row_sum > best_row_sum): 
-                # If this card is better, reset the list and use it
-                # It can be either:
-                # - Better value
-                # - Equal value and better row sum
-                value = row_min
-                best_row_sum = row_sum
-                chosenCards = [myCards[row_i]]
-            
-            row_i += 1
-            
-        ans = np.zeros(8)
-        ans[chosenCards] = 1/len(chosenCards)
-
-        if abs(sum(ans) - 1) > margin:
-            print(f"ERROR in first turn solve - invalid response: {ans}")
-
-        return ans
+        return optimal_first_spy_strat(game, reducedMatrix, player, margin = margin, row_sum_margin = row_sum_margin)
 
     def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
         return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
+
+
