@@ -113,7 +113,7 @@ class defeatStrategy:
         self.opponent = opponentAI
 
     def get_strategy(self, game, reducedMatrix, player, margin = 0.00001):
-        oppStrat = self.opponent.get_strategy(game, reducedMatrix, abs(1-player))
+        oppStrat = self.opponent.get_strategy(game=game, reducedMatrix=reducedMatrix, player=abs(1-player))
         oppStrat = helperFunctions.reduceProbabilities(oppStrat, game.cardsAvailable[abs(1-player)])
 
         if player == 1:
@@ -191,7 +191,7 @@ class fullRandom:
         base_strat = list(game.cardsAvailable[player])
         return [base_strat if i in game.cardsAvailable[abs(1-player)] else None for i in range(8)] 
     
-class savedSimplexOptimal:
+class savedModel:
     # This plays by the Simplex optimal solution. It does not solve the game.
     def __init__(self, path):
         try:
