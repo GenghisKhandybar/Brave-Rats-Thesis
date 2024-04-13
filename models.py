@@ -77,6 +77,18 @@ def optimal_second_spy_strat(game, reducedMatrix, player, margin = 0.00001):
     
     return ans
 
+class randomNonSpy:
+    # Plays randomly, except for spy turns, which it plays optimally
+    def get_strategy(self, game, reducedMatrix, player):
+        card_count = len(game.cardsAvailable[0])
+
+        return [1/card_count if i in game.cardsAvailable[player] else 0 for i in range(8)]
+    
+    def get_first_spy_strat(self, game, reducedMatrix, player, margin = 0.00001, row_sum_margin = 0.005):
+        return optimal_first_spy_strat(game, reducedMatrix, player, margin = margin, row_sum_margin = row_sum_margin)
+
+    def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
+        return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
 
 # Agents (models)
 class intuitiveDistribution:
@@ -167,11 +179,7 @@ class defeatStrategy:
         ans = np.zeros(8)
         ans[chosenCards] = 1/len(chosenCards)
 
-        return ans
-
-
-
-        
+        return ans  
     
     def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
         return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
