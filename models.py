@@ -248,15 +248,17 @@ class savedModel:
 
     def get_strategy(self, game, reducedMatrix, player):
         # Get the strategy for the appropriate player
-        p1_game_str = game.get_game_str() if player == 1 else helperFunctions.reverseGameState(game.get_game_str())
-        return self.knownSolutions[p1_game_str][1][player]
+        # We always want to use P1's strategy  from the save file. 
+        #For P2 turns, we find the corresponding turn for P1 and use that strategy.
+        p1_game_str = game.get_game_str() if player == 0 else helperFunctions.reverseGameState(game.get_game_str())
+        return self.knownSolutions[p1_game_str][1][0]
     
     def get_first_spy_strat(self, game, reducedMatrix, player):
         # Get the strategy for the appropriate player
-        return self.get_strategy(self, game, reducedMatrix, player)
+        return self.get_strategy(game, reducedMatrix, player)
 
     def get_second_spy_strat(self, game, reducedMatrix, player):
-        return self.get_strategy(self, game, reducedMatrix, player)
+        return self.get_strategy(game, reducedMatrix, player)
     
 class simplexSolver:
     def aggregate_solution(self, game, reducedMatrix, player):
