@@ -77,6 +77,41 @@ def optimal_second_spy_strat(game, reducedMatrix, player, margin = 0.00001):
     
     return ans
 
+class naive:
+    def __init__(self, model, path_normal, path_general_turn):
+        # Initialize the model with naive value matrices from 2 existing solution files
+        # The first is from any typical solution file
+        # The second is for general turns, coming from a modified matrix where P1 starts with a general's +2 ability
+        # We also take the inverse transpose of the second matrix for turns when opponent usese general
+        self.normal_matrix = helperFunctions.read_known_solutions(path_normal)['p1-01234567-p2-01234567-w-00-g-00-s-00-h-00'][2]
+        gen_matrix = helperFunctions.read_known_solutions(path_general_turn)['p1-01234567-p2-01234567-w-00-g-10-s-00-h-00'][2]
+        self.general_matrix = gen_matrix
+        self.p2_general_matrix = 1-np.transpose(self.general_matrix)
+        self.model = model
+
+    def get_naive_reduced_matrix(self, game):
+        # Return a 
+        if max(game.generals) == 0:
+            m = self.normal_matrix
+        elif game.generals[0] == 1:
+            m =  self.general_matrix
+        else:
+            m = self.p2_general_matrix
+
+        reducedMatrix = m[list(game.cardsAvailable[0])]
+        reducedMatrix = reducedMatrix[:, list(game.cardsAvailable[1])]
+        return reducedMatrix
+
+    def get_strategy(self, game, reducedMatrix, player):
+        return self.model.get_strategy(game, self.get_naive_reduced_matrix(game), player)
+            
+    
+    def get_first_spy_strat(self, game, reducedMatrix, player):
+        return self.model.get_first_spy_strat(game, self.get_naive_reduced_matrix(game), player)
+    
+    def get_second_spy_strat(self, game, reducedMatrix, player):
+        return self.model.get_second_spy_strat(game, self.get_naive_reduced_matrix(game), player)
+
 class randomNonSpy:
     # Plays randomly, except for spy turns, which it plays optimally
     def get_strategy(self, game, reducedMatrix, player):
@@ -213,21 +248,15 @@ class savedModel:
 
     def get_strategy(self, game, reducedMatrix, player):
         # Get the strategy for the appropriate player
-        strat = self.knownSolutions[game.get_game_str()][1][player]
-
-        return strat
+        p1_game_str = game.get_game_str() if player == 1 else helperFunctions.reverseGameState(game.get_game_str())
+        return self.knownSolutions[p1_game_str][1][player]
     
     def get_first_spy_strat(self, game, reducedMatrix, player):
         # Get the strategy for the appropriate player
-        strat = self.knownSolutions[game.get_game_str()][1][player]
-
-        return strat
+        return self.get_strategy(self, game, reducedMatrix, player)
 
     def get_second_spy_strat(self, game, reducedMatrix, player):
-        # Get the strategy for the appropriate player
-        strat = self.knownSolutions[game.get_game_str()][1][player]
-
-        return strat
+        return self.get_strategy(self, game, reducedMatrix, player)
     
 class simplexSolver:
     def aggregate_solution(self, game, reducedMatrix, player):
