@@ -389,7 +389,7 @@ def create_solution_str(game, tup):
     #ans += ("\nCurrent Game Matrix: \n" + str(np.round(tup[2], 5)))
     return ans
         
-def play_game(game, knownSolutions, players):
+def play_game(game, knownSolutions, players, models):
     state_str = game.get_game_str()
     solution = knownSolutions[state_str]
     game_size = len(game.cardsAvailable[0])
@@ -533,14 +533,36 @@ if __name__ == "__main__":
     #solve_game(savePath = "SolutionFiles/SimplexVsRandom.txt", models=[models.savedModel("SolutionFiles/updatedOptimalSolution.txt"), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/DefeatVsRandom.txt", models=[models.defeatStrategy(models.fullRandom()), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/SimplexVsDefeat.txt", models=[models.savedModel("SolutionFiles/updatedOptimalSolution.txt"), models.defeatStrategy(models.savedModel("SolutionFiles/updatedOptimalSolution.txt"))])
-    #solve_game(savePath = "SolutionFiles/hypotheticalGeneralStart.txt", start_gamestr='p1-01234567-p2-01234567-w-00-g-10-s-00-h-00')
     #solve_game(savePath = "SolutionFiles/IntuitiveVsOptimal.txt", models=[models.intuitiveDistribution(), models.savedModel("SolutionFiles/updatedOptimalSolution.txt")])
     #solve_game(savePath = "SolutionFiles/IntuitiveVsDefeater.txt", models=[models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"), models.defeatStrategy(models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"))])
     #solve_game(savePath = "SolutionFiles/IntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/RandomNonSpyVsSimplex.txt", models=[models.randomNonSpy(), models.savedModel("SolutionFiles/updatedOptimalSolution.txt")])
     #solve_game(savePath = "SolutionFiles/RandomNonSpyVsDefeater.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.defeatStrategy(models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"))])
-    solve_game(savePath = "SolutionFiles/RandomNonSpyVsRandom.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.fullRandom()])
+    #solve_game(savePath = "SolutionFiles/RandomNonSpyVsRandom.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/RandomNonSpyVsIntuitive.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
 
-    
+    # Naive simplex
+    #solve_game(savePath = "SolutionFiles/hypotheticalGeneralStart.txt", start_gamestr='p1-01234567-p2-01234567-w-00-g-10-s-00-h-00')
+    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsSimplex.txt", 
+    #           models=[models.naive(models.simplexSolver(), "SolutionFiles/updatedOptimalSolution.txt", "SolutionFiles/hypotheticalGeneralStart.txt"), 
+    #                   models.savedModel("SolutionFiles/updatedOptimalSolution.txt")])
+    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsDefeat.txt",
+    #            models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), 
+    #            models.defeatStrategy(models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"))])
+    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.fullRandom()])
+    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
+    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
+
+    # Naive Simplex
+    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsSimplex.txt", models=[
+    #    models.naive(models.intuitiveDistribution(), "SolutionFiles/updatedOptimalSolution.txt", "SolutionFiles/hypotheticalGeneralStart.txt"), 
+    #    models.savedModel("SolutionFiles/updatedOptimalSolution.txt")])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsDefeat.txt",
+                models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), 
+                models.defeatStrategy(models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"))])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsNaiveSimplex.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt")])
+
     #default_console_start(path)
