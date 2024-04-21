@@ -21,9 +21,6 @@ startTime = pc()
 saveStartTime = pc()
 computed_states = 0
 
-# %%
-
-
 # %% ratGame class
 class ratGame:
     def __init__(self, game_str = None):
@@ -161,7 +158,6 @@ class ratGame:
         strat_results[0] = models[first_player].get_first_spy_strat(self, reducedMatrix, first_player)
         strat_results[1] = models[second_player].get_second_spy_strat(self, reducedMatrix, second_player)
 
-        
         if first_player == 1:
            currentRoundMatrix = np.transpose(currentRoundMatrix)
 
@@ -216,9 +212,7 @@ class ratGame:
                 subGame.holds = self.holds[:]
 
                 subGame.advanceGameState([p1_next, p2_next])
-
                 subGameStr = subGame.get_game_str()
-                
                 
                 if subGameStr in knownSolutions:
                     # We may already know this state's value
@@ -226,18 +220,12 @@ class ratGame:
                     
                 else: 
                     # Otherwise, we have to solve the sub-game before solving this game
-                    #print("Playing [" + str(p1_next) + ", " + str(p2_next) + "], Generating value for sub-game: " + subGameStr)
-
                     subGameValue = subGame.getValue(knownSolutions, models, savePath=savePath, save_interval=save_interval, report_interval=report_interval)
                     
                     if subGameValue+report_margin < 0 or subGameValue-report_margin > 1:
                         print(f"Invalid value in position {self.get_game_str()}: {subGameValue}")
 
                     currentRoundMatrix[p1_next][p2_next] = subGameValue
-
-                    #print("Got value: " + str(round(subGameValue,4)))
-
-                    #print("Generated new value: " + str(subGameValue))
 
         game_str = self.get_game_str()
 
@@ -262,18 +250,14 @@ class ratGame:
                 gameResult = self.get_strats_and_value(currentRoundMatrix, reducedMatrix, models)
 
             else:
-                # STILL DOING SPY ROUNDS OPTIMALLY FOR ALL PLAYER TYPES FOR NOW
                 # Spy round - sequential solve (minmax)
                 gameResult = self.get_sequential_strats_and_value(currentRoundMatrix, reducedMatrix, models=models, first_player = self.spies[0]) # 0 = p1 first, 1 = p2 first
-
-                #gameResult = self.sequential_sovle(reducedMatrix, first_player = self.spies[0]) 
 
             val = gameResult[0]
             knownSolutions[game_str] = gameResult
 
         if len(self.cardsAvailable[0]) >= 7: # Status progress report on high-level turns
-            #print("Finished solving gamestate " + self.get_game_str())
-            print("Progress: finished solving turn 2 state " + game_str + " with value " + str(gameResult[0]))
+            print("Progress: finished solving turn 1 or 2 state " + game_str + " with value " + str(gameResult[0]))
 
         # Time-based progress reports and saving.
         global startTime, saveStartTime, overall_startTime, computed_states
@@ -288,7 +272,6 @@ class ratGame:
             print(f"Computed {states - computed_states} states in {round(t-startTime)} seconds. Total: {states} states so far in {round(t-overall_startTime)} seconds.")
             startTime = t
             computed_states = states
-
 
         return val
 
@@ -415,8 +398,6 @@ def play_game(game, knownSolutions, players, models):
         print('!!!!!!!! WINNER: PLAYER %d !!!!!!!!'%(game.gameWinner + 1))
         return
 
-    
-    #print(knownSolutions[game.get_game_str()])
     print_solution(game.get_game_str(), knownSolutions)
     play_game(game, knownSolutions, players)
 
@@ -457,7 +438,7 @@ def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00
     print(f"Solving the game with models: {type(models[0])} and {type(models[1])}. Solve times may vary. Reporting progress every {round(report_interval/60,1)} minutes, saving every {round(save_interval/60,1)} minutes to {tempSavePath}.")
 
     if loadFromTempSave is not None:
-        knownSolutions = helperFunctions.read_known_solutions(loadFromTempSave) #{}
+        knownSolutions = helperFunctions.read_known_solutions(loadFromTempSave)
         print(f"Loaded {len(knownSolutions)} solutions from {loadFromTempSave}")
     else:
         knownSolutions = {}
@@ -468,17 +449,14 @@ def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00
     helperFunctions.write_known_solutions(knownSolutions, savePath)
 
 def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00'):
-        # Try to read the file "knownSolutions.txt"
+    # Try to read the file "knownSolutions.txt"
     # If we can't, create the solutions from scratch
     try:
         # Read solutions from file (5-10 seconds)
-
         print("Reading solutions...")
-
-        
         knownSolutions = helperFunctions.read_known_solutions(path)
-
         print("Done reading solutions")
+
     except Exception as e:
         # If file couldn't be read, we'll make a new one
         print(e)
@@ -495,6 +473,8 @@ def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-
 path = "SolutionFiles/updatedOptimalSolution.txt"
 
 if __name__ == "__main__":
+    # These are the commands to solve game for each pair of models
+
     #solve_game(savePath = "SolutionFiles/updatedOptimalSolution.txt", save_interval = 300, loadFromTempSave="temp_solution.txt")
     #solve_game(savePath = "SolutionFiles/SimplexVsRandom.txt", models=[models.savedModel("SolutionFiles/updatedOptimalSolution.txt"), models.fullRandom()])
     #solve_game(savePath = "SolutionFiles/DefeatVsRandom.txt", models=[models.defeatStrategy(models.fullRandom()), models.fullRandom()])
@@ -523,12 +503,12 @@ if __name__ == "__main__":
     #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsSimplex.txt", models=[
     #    models.naive(models.intuitiveDistribution(), "SolutionFiles/updatedOptimalSolution.txt", "SolutionFiles/hypotheticalGeneralStart.txt"), 
     #    models.savedModel("SolutionFiles/updatedOptimalSolution.txt")])
-    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsDefeat.txt",
-                models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), 
-                models.defeatStrategy(models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"))])
-    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.fullRandom()])
-    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
-    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
-    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsNaiveSimplex.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt")])
+    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsDefeat.txt",
+    #            models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), 
+    #            models.defeatStrategy(models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"))])
+    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.fullRandom()])
+    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
+    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
+    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsNaiveSimplex.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt")])
 
-    #default_console_start(path)
+    default_console_start(path)
