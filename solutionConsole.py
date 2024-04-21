@@ -3,7 +3,6 @@
 
 # %%
 #Packages
-import nashpy as nash
 import numpy as np
 
 # Timing
@@ -24,8 +23,7 @@ computed_states = 0
 # %% ratGame class
 class ratGame:
     def __init__(self, game_str = None):
-        
-        self.game_size = 8
+        self.game_size = 8 # Constant variable for total cards in Brave Rats
 
         if game_str is None:
             self.cardsAvailable =[set(range(self.game_size)),set(range(self.game_size))]
@@ -33,7 +31,6 @@ class ratGame:
             self.generals = [0,0]
             self.spies = [0,0]
             self.holds = [0,0]
-
             self.gameWinner = None
             
         else:
@@ -92,7 +89,7 @@ class ratGame:
         effects = (cards[0], cards[1])
 
         if(effects[0] == 5 or effects[1] == 5): #WIZARD
-            effects = (8, 8) #irrelevant numbers
+            effects = (8, 8) # 8 = no effect
         if(values[0] < values[1]): #For the inner function, v0 > v1
             a = -self.innerMatchup([values[1],values[0]],[effects[1],effects[0]])
         else:
@@ -142,7 +139,7 @@ class ratGame:
         p2_card_vals = np.matmul(np.array(strat_results[0]), currentRoundMatrix)
         value = np.matmul(np.array(strat_results[1]), p2_card_vals)
 
-        # value, strategies, reducedmatrix, strategy types
+        # state_info is: (value, strategies, reducedmatrix, strategy types)
         # Both strategies are type "s" for simultaneous - one probability per card
         state_info = (value, [list(strat_results[0]), list(strat_results[1])], reducedMatrix, ["s", "s"])
 
@@ -203,13 +200,7 @@ class ratGame:
         # Start with a k by k matrix, and get the value for each corresponding sub-state.
         for p1_next in self.cardsAvailable[0]:
             for p2_next in self.cardsAvailable[1]:
-                subGame = ratGame() #ratGame(self.get_game_str())
-                # Copying manually should be faster than using the gamestring
-                subGame.cardsAvailable = [self.cardsAvailable[0].copy(), self.cardsAvailable[1].copy()]
-                subGame.wins = self.wins[:]
-                subGame.generals = self.generals[:]
-                subGame.spies = self.spies[:]
-                subGame.holds = self.holds[:]
+                subGame = self.copy()
 
                 subGame.advanceGameState([p1_next, p2_next])
                 subGameStr = subGame.get_game_str()
@@ -246,7 +237,6 @@ class ratGame:
 
             if max(self.spies) == 0: # Check if a spy effect is active
                 # Non-spy round - solve via simultaneous move (simplex method)
-
                 gameResult = self.get_strats_and_value(currentRoundMatrix, reducedMatrix, models)
 
             else:
@@ -274,6 +264,15 @@ class ratGame:
             computed_states = states
 
         return val
+    
+    def copy(self):
+        subGame = ratGame()
+        subGame.cardsAvailable = [self.cardsAvailable[0].copy(), self.cardsAvailable[1].copy()]
+        subGame.wins = self.wins[:]
+        subGame.generals = self.generals[:]
+        subGame.spies = self.spies[:]
+        subGame.holds = self.holds[:]
+        return subGame
 
 # %% functions for command line interface
 def print_solution(statename, knownSolutions):
@@ -317,7 +316,6 @@ def create_solution_str(game, tup):
     
     ans += "\nP1       "# + ",       ".join(map(str,game.cardsAvailable[1])))
     
-
     if tup[3][0] != "r": # Not a spy response
         p1_prob_strings = ["(" + str(round(100*x)).rjust(3) + "%) " for x in p1_probs]
     else:
@@ -329,13 +327,10 @@ def create_solution_str(game, tup):
 
     for i in range(len(p2_cards_list)):
         ans += f" {p2_cards_list[i]} {p2_prob_strings[i]}"
-        #ans += '%s (%s%%)  '%(str(p2_cards_list[i]), str(round(100*tup[1][1][i])).rjust(2))
 
     for i in range(len(p1_cards_list)):
         ans += f"\n{p1_cards_list[i]} {p1_prob_strings[i]} {'  | '.join(map(standardize_decimal,tup[2][i]))}"
-        #ans += '\n%s (%s%%) %s' % (str(p1_cards_list[i]), str(round(100*tup[1][0][i])).rjust(2), " | ".join(map(standardize_decimal,tup[2][i])))
 
-    #ans += ("\nCurrent Game Matrix: \n" + str(np.round(tup[2], 5)))
     return ans
         
 def play_game(game, knownSolutions, players, models):
