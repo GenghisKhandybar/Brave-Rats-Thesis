@@ -291,40 +291,6 @@ class ratGame:
 
 
         return val
-    
-    def sequential_sovle(self, reducedMatrix, first_player):
-        # For spy turns, we will simply use minmax.
-        game_size = len(self.cardsAvailable[0])
-
-        if first_player == 1:
-            # If P2 is going first, we transpose and take the negative to figure out which is best.
-            updatedMatrix = - np.transpose(reducedMatrix)
-        else:
-            updatedMatrix = reducedMatrix
-        
-        value = -np.inf
-        best_row = 0
-        row_i = 0
-        for row in updatedMatrix:
-            row_min = min(row)
-            if row_min > value:
-                value = row_min
-                best_row = row_i
-            row_i += 1
-        
-        best_col = np.where(updatedMatrix[best_row] == value)
-        
-        strategies = [np.zeros(game_size), np.zeros(game_size)]
-        strategies[0][best_row] = 1
-        strategies[1][best_col[0][0]] = 1
-        
-        if first_player == 1:
-            (strategies[0], strategies[1]) = (strategies[1], strategies[0])
-            value = -value
-
-        state_info = (value, strategies, reducedMatrix)
-
-        return (state_info, value)
 
 # %% functions for command line interface
 def print_solution(statename, knownSolutions):
