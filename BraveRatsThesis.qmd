@@ -340,7 +340,6 @@ df_predictors <- allOptimalStrategies %>%
 #ins_lm_fit$fit$coefficients
 ```
 
-
 ## Regression to find value (win probability)
 
 Model 1: All predictors, linear regression
@@ -382,7 +381,7 @@ value_lm_fit_2 <- lin_reg_spec %>%
 value_lm_fit_2$fit$coefficients %>% round(4)
 ```
 
-Model 3: Only P1's factors * turn, linear regression
+Model 3: Only P1's factors \* turn, linear regression
 
 ```{r}
 lin_reg_spec <- linear_reg() %>%
@@ -406,7 +405,6 @@ fit_df[1:8,]
 fit_df[-(1:8),] %>% 
   pivot_wider(names_from = turn, values_from = ".")
 ```
-
 
 ### GLM
 
@@ -447,14 +445,13 @@ test_df <- data.frame()
 predict(glm_1, )
 ```
 
-
 **Overall, regression proves difficult to operationalize and interpret.**
 
 # Spy turns
 
-Given that card X is in hand and you've been spied, how often is card X optimal to play? 
+Given that card X is in hand and you've been spied, how often is card X optimal to play?
 
-This table is split by turn of game. Contrary to prior belief, card 0 is not the overwhelming preferrence even when it's an option (<50% until turn 5).
+This table is split by turn of game. Contrary to prior belief, card 0 is not the overwhelming preferrence even when it's an option (\<50% until turn 5).
 
 ```{r}
 allOptimalStrategies %>% 
@@ -637,9 +634,11 @@ rpart.plot(tree_fitted$fit)
 
 # Human conformity to optimal
 
-In this section, we're looking at every card a player had the option to play, the optimal probability to play it, and whether they played it. 
+In this section, we're looking at every card a player had the option to play, the optimal probability to play it, and whether they played it.
 
 ```{r}
+#| label: player-optimal-data-reshaping
+
 played_vs_optimal <- joined_human_ai %>% 
   pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
   mutate(this_card = substring(card_untrimmed, 5,6),
@@ -648,13 +647,12 @@ played_vs_optimal <- joined_human_ai %>%
   select(Game, turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy) %>% 
   filter(!is.na(optimal_prob)) # Removing invalid cards
 
-played_vs_optimal %>% sample_n(8)
+#played_vs_optimal %>% sample_n(8)
 ```
-
 
 ## Absolute mistakes
 
-"Absolute mistake" = playing a card with optimal probability of 0. These plays are against theory, but may still be beneficial if you have a confident prediction about your opponent's choice. 
+"Absolute mistake" = playing a card with optimal probability of 0. These plays are against theory, but may still be beneficial if you have a confident prediction about your opponent's choice.
 
 Which cards are most often played when they shouldn't have?
 
@@ -663,12 +661,59 @@ Which cards are most often played when they shouldn't have?
 Counts of all absolute mistakes made by card
 
 ```{r}
+# Overall 
+played_vs_optimal %>% 
+  #filter(this_card_played == 1) %>% 
+  mutate(is_viable = ifelse(optimal_prob == 0, "Not Viable", "Viable")) %>% 
+  group_by(is_viable, this_card_played) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = is_viable, values_from = n) %>% 
+  mutate(viability_rate = Viable / (Viable + `Not Viable`))
+```
+
+When only 1 card is viable?
+
+```{r}
+
+# Overall
+played_vs_optimal %>% 
+  filter(optimal_prob == 1) %>% 
+  mutate(card_played = ifelse(this_card_played == 1, "Played", "Not Played"),
+         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+  group_by(card_played, turn_type) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = card_played, values_from = n) %>% 
+  mutate(accuracy = Played/(Played + `Not Played`))
+
+# By turn
+played_vs_optimal %>% 
+  filter(optimal_prob == 1) %>% 
+  mutate(card_played = ifelse(this_card_played == 1, "Played", "Not Played"),
+         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+  group_by(card_played, turn_type, turn) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = card_played, values_from = n) %>% 
+  mutate(accuracy = Played/(Played + `Not Played`)) %>% 
+  arrange(turn_type, turn)
+```
+
+```{r}
+# Ad-hoc: what are the turn-2 simultaneus moves with a 100% best choice?
+# If you play general into ambassador first turn, wizard into assassin is a pure play 
+played_vs_optimal %>% 
+  filter(optimal_prob == 1) %>% 
+  mutate(card_played = ifelse(this_card_played == 1, "Played", "Not Played"),
+         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+  filter(turn_type == "Simultaneous", turn == 2)
+```
+
+
+```{r}
 played_vs_optimal %>% 
   filter(p1_spy == FALSE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
   group_by(this_card) %>% #, turn
   summarise(n_mistakes = n())
 ```
-
 
 Turn-by-turn view: Column = card, row = turn of game. The most common "absolute mistakes" are playing the 6 card on turn 1, the 0 card on turn 3, and the 1 card on turn 5.
 
@@ -722,7 +767,6 @@ played_vs_optimal %>%
   pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = actual_card_played) %>% 
   arrange(actual_card_played)
 ```
-
 
 #### When going second (opponent used spy)
 
@@ -778,8 +822,7 @@ played_vs_optimal %>%
 allTurns %>% filter(gamestate_str == 'p1-0134567-p2-0123567-w-02-g-00-s-10-h-00')
 ```
 
-
-## Error rates by player 
+## Error rates by player
 
 #### Non-spy turns
 
@@ -798,9 +841,7 @@ played_vs_optimal %>%
 
 #### Spy turns
 
-Spy turn errors 
-p1_spy = p1 used spy, so p2 chooses second
-p2_spy = p2 used spy, so p2 chooses first
+Spy turn errors p1_spy = p1 used spy, so p2 chooses second p2_spy = p2 used spy, so p2 chooses first
 
 ```{r}
 
@@ -825,7 +866,7 @@ played_vs_optimal %>%
 
 Here, we put a player's options into "buckets" based on how often they should optimally play it.
 
-It's less difficult than anticipated to detect these differences, with players playing cards in the "0%" bucket ~10% of the time there's an opportunity to do so. They only play cards in the "100%" bucket 57% of the time. I've included the "bias_proportion" variable as the difference between the proportion played and center of the bucket. The lowest 2 buckets are over-played an the rest are under-played (more severely as the probability increases).
+It's less difficult than anticipated to detect these differences, with players playing cards in the "0%" bucket \~10% of the time there's an opportunity to do so. They only play cards in the "100%" bucket 57% of the time. I've included the "bias_proportion" variable as the difference between the proportion played and center of the bucket. The lowest 2 buckets are over-played an the rest are under-played (more severely as the probability increases).
 
 ```{r}
 prob_buckets <- played_vs_optimal %>% 
@@ -865,8 +906,6 @@ prob_buckets_by_card %>%
   facet_grid(rows = vars(this_card))
   
 ```
-
-
 
 ### Impact of errors
 
@@ -920,8 +959,6 @@ value_changes %>%
             n = n())
 ```
 
-
-
 # Human EDA
 
 ```{r}
@@ -935,12 +972,10 @@ joined_human_ai %>% filter(is.na(value)) %>%
 allTurns %>% filter(turn==5, p1_holds==2, p2_holds==2)
 ```
 
-
 ```{r}
 joined_human_ai %>% 
   filter(Game==1)
 ```
-
 
 ```{r}
 joined_human_ai %>% 
@@ -950,15 +985,69 @@ joined_human_ai %>%
   facet_grid(rows = vars(Outcome))
 ```
 
-
-
 ```{r}
 joined_human_ai %>% filter(value==1, Outcome=="Loss")# %>% select()
 ```
+
+
+
+Number of cards played and turns
+
+```{r}
+joined_human_ai %>% summarize(n = n(), n_turns = n()/2)
+```
+
+Average turns per game
+
+```{r}
+turns_per_game <- joined_human_ai %>% 
+  group_by(Game) %>% 
+  summarize(turns = max(turn)) 
+
+n_games <- nrow(turns_per_game$Game)
+
+hist(turns_per_game$turns)
+
+joined_human_ai %>% 
+  filter(Flipped == FALSE) %>% 
+  ggplot(aes(x=turn)) +
+  geom_bar(fill = 'white', color = "black", size = 1) +
+  geom_text(aes(label = ..count..), 
+            stat = 'count', 
+            vjust = -0.5,  # Vertical adjustment for count
+            color = 'black') +
+  geom_text(aes(label = scales::percent(..count.. / n_games, accuracy = 0.1)), 
+            stat = 'count', 
+            vjust = 1.5,  # Vertical adjustment for proportion
+            color = 'black') +
+  labs(title = "Observed Plays by Turn of Game",
+       subtitle = "Count and % of games that reach turn x",
+       x = "Turn",
+       y = "Games")  +
+  theme_minimal() +
+  theme(
+    # Remove the y-axis
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    # Remove grid lines
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    # Set x-axis breaks from 0 to 7
+    axis.ticks.x = element_line(),
+    axis.text.x = element_text(size = 10),
+    axis.ticks.length.x = unit(0, "cm"),  # Adjust tick length if needed
+  ) +
+  scale_x_continuous(breaks = 1:8) +
+  scale_y_continuous(expand = expansion(add = c(0,10)))
+
+mean(turns_per_game$turns)
+
+```
+
+
+Distinct Game States
 
 ```{r}
 joined_human_ai %>% 
   distinct(gamestate_str)
 ```
-
-
