@@ -20,6 +20,7 @@ library(tidyverse)
 library(tidyclust)
 library(tclust)
 library(tidymodels)
+library(knitr)
 ```
 
 ## Nash optimal data
@@ -643,8 +644,9 @@ played_vs_optimal <- joined_human_ai %>%
   pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
   mutate(this_card = substring(card_untrimmed, 5,6),
          this_card_played = if_else(P1==this_card, 1, 0),
-         actual_card_played = P1) %>% 
-  select(Game, turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy) %>% 
+         actual_card_played = P1,
+         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+  select(Game, turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy, turn_type) %>% 
   filter(!is.na(optimal_prob)) # Removing invalid cards
 
 #played_vs_optimal %>% sample_n(8)
@@ -669,7 +671,40 @@ played_vs_optimal %>%
   summarize(n = n()) %>% 
   pivot_wider(names_from = is_viable, values_from = n) %>% 
   mutate(viability_rate = Viable / (Viable + `Not Viable`))
+
+# By turn
+played_vs_optimal %>% 
+  filter(this_card_played == 1) %>% 
+  mutate(is_viable = ifelse(optimal_prob == 0, "Not Viable", "Viable")) %>% 
+  group_by(is_viable, turn) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = is_viable, values_from = n) %>% 
+  mutate(viability_rate = Viable / (Viable + `Not Viable`))
+
+# By turn type
+played_vs_optimal %>% 
+  filter(this_card_played == 1) %>% 
+  mutate(is_viable = ifelse(optimal_prob == 0, "Not Viable", "Viable")) %>% 
+  group_by(is_viable, turn_type) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = is_viable, values_from = n) %>% 
+  mutate(viability_rate = Viable / (Viable + `Not Viable`))
+
+# By turn type and turn
+played_vs_optimal %>% 
+  filter(this_card_played == 1) %>% 
+  mutate(is_viable = ifelse(optimal_prob == 0, "Not Viable", "Viable")) %>% 
+  group_by(is_viable, turn_type, turn) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = is_viable, values_from = n) %>% 
+  mutate(viability_rate = Viable / (Viable + `Not Viable`)) %>% 
+  arrange(turn_type, turn)
 ```
+
+```{r}
+
+```
+
 
 When only 1 card is viable?
 
@@ -678,8 +713,7 @@ When only 1 card is viable?
 # Overall
 played_vs_optimal %>% 
   filter(optimal_prob == 1) %>% 
-  mutate(card_played = ifelse(this_card_played == 1, "Played", "Not Played"),
-         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+  mutate(card_played = ifelse(this_card_played == 1, "Played", "Not Played")) %>% 
   group_by(card_played, turn_type) %>% 
   summarize(n = n()) %>% 
   pivot_wider(names_from = card_played, values_from = n) %>% 
@@ -862,6 +896,20 @@ played_vs_optimal %>%
 
 ## Non-absolute errors
 
+### First turn table
+
+```{r}
+played_vs_optimal %>%
+  filter(turn == 1, this_card_played == 1) %>% 
+  group_by(this_card) %>% 
+  summarize(n_plays = n(),
+            optimal_prob = mean(optimal_prob)) %>% 
+  mutate(observed_prob = n_plays / sum(n_plays),
+         expected_plays = optimal_prob * sum(n_plays)) %>% 
+  kable(digits = 3)
+```
+
+
 #### Overall proportions played by bucket.
 
 Here, we put a player's options into "buckets" based on how often they should optimally play it.
@@ -870,21 +918,46 @@ It's less difficult than anticipated to detect these differences, with players p
 
 ```{r}
 prob_buckets <- played_vs_optimal %>% 
-  filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
-  mutate(prob_bucket = if_else(optimal_prob == 0 | optimal_prob == 1, optimal_prob, round(optimal_prob*9)/9)) %>% 
+  #filter(optimal_prob > 0) %>% 
+  #filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
+  mutate(prob_bucket = ceiling(optimal_prob*10)/10) %>% 
   group_by(prob_bucket) %>% 
   summarise(n_played = sum(this_card_played),
             n_opportunities = n(),
             prop_played = mean(this_card_played),
             avg_prop_in_bucket = mean(optimal_prob)) %>% 
-  mutate(bias_proportion = prop_played - avg_prop_in_bucket)
+  mutate(bias_proportion = prop_played - avg_prop_in_bucket,
+            expected_plays = avg_prop_in_bucket * n_opportunities)
 
-prob_buckets
+prob_buckets %>% 
+  kable(digits = 2)
 
 prob_buckets%>% 
-  ggplot(aes(x = prob_bucket, y = prop_played)) +
-  geom_bar(stat = "identity")
+  ggplot(aes(x = avg_prop_in_bucket, y = prop_played, size = n_opportunities)) +
+  geom_point(stat = "identity")  +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  scale_x_continuous(limits = c(0, 1), expand = expansion(add = c(0.01,0.01))) +
+  scale_y_continuous(limits = c(0, 1), expand = expansion(add = c(0,0))) +
+  labs(title = "Observed cards played vs. optimal probabilities (bucketed)",
+       #subtitle = "",
+       x = "Average poportion vs. optimal proportion",
+       y = "% played")  +
+  theme_bw() +
+  theme(
+    # Remove the y-axis
+    axis.title.y = element_blank(),
+    axis.text.y = element_blank(),
+    # Set x-axis breaks from 0 to 7
+    #axis.ticks.x = element_line(),
+    #axis.text.x = element_text(size = 10),
+    axis.ticks.length.x = unit(0, "cm") # Adjust tick length if needed
+  )
 ```
+
+```{r}
+
+```
+
 
 Separated by card
 
@@ -977,6 +1050,8 @@ joined_human_ai %>%
   filter(Game==1)
 ```
 
+### Game plots
+
 ```{r}
 joined_human_ai %>% 
   mutate(game_player = str_c("Game",Game,p1_name)) %>% 
@@ -997,14 +1072,14 @@ Number of cards played and turns
 joined_human_ai %>% summarize(n = n(), n_turns = n()/2)
 ```
 
-Average turns per game
+### Turns per game
 
 ```{r}
 turns_per_game <- joined_human_ai %>% 
   group_by(Game) %>% 
   summarize(turns = max(turn)) 
 
-n_games <- nrow(turns_per_game$Game)
+n_games <- nrow(turns_per_game)
 
 hist(turns_per_game$turns)
 
