@@ -129,6 +129,21 @@ joined_human_ai <- braverats %>% left_join(allOptimalStrategies, by=c(paste("p1_
                                                 "p1_spy", "p2_spy", "p1_general", "p2_general", "responding_to_card"))
 ```
 
+```{r}
+#| label: player-optimal-data-reshaping
+
+played_vs_optimal <- joined_human_ai %>% 
+  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
+  mutate(this_card = substring(card_untrimmed, 5,6),
+         this_card_played = if_else(P1==this_card, 1, 0),
+         actual_card_played = P1,
+         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+  select(Game, turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy, turn_type) %>% 
+  filter(!is.na(optimal_prob)) # Removing invalid cards
+
+#played_vs_optimal %>% sample_n(8)
+```
+
 # EDA
 
 ## Number of turns
@@ -160,25 +175,66 @@ allOptimalStrategies %>%
 ## Values of the turns
 
 ```{r}
-hist(allTurns$value)
-```
-
-Plots of value by turn
-
-```{r}
-allTurns %>% 
-  ggplot(aes(x = factor(turn), y = value)) +
-  geom_violin()
-
-allTurns %>% 
-  ggplot(aes(x = factor(turn), y = value)) +
-  geom_point(alpha = 0.05)
+# This is symmetrical, how to make it look like it?
+mean(allTurns$value)
 
 allTurns %>% 
   ggplot(aes(x = value)) +
-  geom_histogram() +
-  facet_grid(rows = vars(turn), scales = "free_y")
+  geom_histogram(binwidth = 0.1)
 ```
+
+#### Plots of value by turn
+
+```{r}
+# Setting the bounds to make buckets symmetrical about 0.5.
+# In order to achieve symmetry there must also be no datapoints on any breakpoints, so I widen them a tiny bit
+# There are 21 buckets of just over 0.05 size.
+lower_bound <- -0.025 + 0.000001
+upper_bound <- 1.025 - 0.000001
+breaks <- seq(lower_bound, upper_bound, by = ((upper_bound -lower_bound)/(21)))
+breaks <- seq(-0.025 + 0.000001, 1.025 - 0.000001, by = ((to - from)/(length.out - 1)))
+#breaks <- seq(-0.05, 1.05, by = 0.1)
+
+data_buckets <- cut(allTurns$value, breaks = breaks, include.lowest = TRUE)
+table(data_buckets)
+allTurns %>% 
+  filter(value == 0.025)
+
+allTurns %>% 
+  mutate(turn = paste0("Turn ", turn)) %>% 
+  ggplot(aes(x = value)) +
+  geom_histogram(aes(y = ..density..), fill = 'grey5', color = "grey20", breaks = breaks) +
+  facet_grid(rows = vars(turn), scales = "free_y", switch = "y")  +
+  theme_minimal() +
+  theme(
+    strip.text.y.left = element_text(angle = 0, hjust = 0.5), # Rotate facet labels upright
+    
+    axis.line.y = element_blank(), # Hide the left y-axis line
+    axis.text.y.left = element_blank(), # Hide the left y-axis text
+    axis.ticks.y.left = element_blank(), # Hide the left y-axis ticks
+    axis.title.y = element_blank(), # Remove y-axis label
+
+    #panel.grid.major.y = element_line(), # Customize grid line appearance
+    panel.grid.minor.y = element_blank() # Remove minor grid lines
+
+  ) +
+  labs(title = "Distribution of Values by Turn",
+         x = "Value of Game State",
+         y = "Proportion")
+```
+
+#### Proportion of turns that are either 1 or 0 by turn
+
+```{r}
+allTurns %>% 
+  mutate(turnType = ifelse(value==0 | value==1, "Value = 0 or 1", ifelse(value == 0.5, "Value = 0.5", "Other"))) %>% 
+  #mutate(turnType = ifelse(value==0, "Value = 0", ifelse(value==1, "Value = 1", "Value = 0.5"))) %>% 
+  group_by(turnType, turn) %>% 
+  summarize(n = n()) %>% 
+  pivot_wider(names_from = turnType, values_from = n, values_fill = 0) %>% 
+  arrange(turn)
+```
+
 
 For each card, the distribution of what its optimal probability is when it's an option.
 
@@ -198,7 +254,7 @@ Average of each card, by turn
 
 ```{r}
 card_optimals %>% 
-  filter(spies == "00") %>% 
+  #filter(spies == "00") %>% 
   select(card,turn,optimal_prob) %>% 
   filter(!is.na(optimal_prob)) %>% 
   group_by(card,turn) %>% 
@@ -637,20 +693,7 @@ rpart.plot(tree_fitted$fit)
 
 In this section, we're looking at every card a player had the option to play, the optimal probability to play it, and whether they played it.
 
-```{r}
-#| label: player-optimal-data-reshaping
 
-played_vs_optimal <- joined_human_ai %>% 
-  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
-  mutate(this_card = substring(card_untrimmed, 5,6),
-         this_card_played = if_else(P1==this_card, 1, 0),
-         actual_card_played = P1,
-         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
-  select(Game, turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy, turn_type) %>% 
-  filter(!is.na(optimal_prob)) # Removing invalid cards
-
-#played_vs_optimal %>% sample_n(8)
-```
 
 ## Absolute mistakes
 
@@ -996,6 +1039,7 @@ value_changes <- joined_human_ai %>%
   
 # This plot is "Optimal probability of playing the card that was played" vs "change in value of game".
 value_changes %>% 
+  filter(optimal_prob > 0) %>% 
   ggplot(aes(x = optimal_prob, y = value_change, color = P1)) +
   geom_point() +
   geom_smooth()
@@ -1003,17 +1047,24 @@ value_changes %>%
 
 ```{r}
 value_changes %>% 
-  filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
+  #filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
   mutate(abs_mistake = if_else(optimal_prob == 0, "Mistake", "Non-mistake")) %>% 
   group_by(abs_mistake) %>% 
   summarize(avg_change = mean(value_change), 
             std_dev = sd(value_change),
             n = n())
 
-# t-test on difference
+# t-test on difference (non-spy)
 SE = (0.2362542/239 + 0.2356995/797)^0.5
 t = (-0.028737909 - 0.008617767)/ SE
 df = 239 + 797 - 2
+
+pt(t, df=df, lower.tail=TRUE)
+
+# t-test on difference (including spy turns)
+SE = (0.2104452/369 + 0.2239661/905)^0.5
+t = (-0.04017535 - 0.01638089)/ SE
+df = 369 + 905 - 2
 
 pt(t, df=df, lower.tail=TRUE)
 ```
