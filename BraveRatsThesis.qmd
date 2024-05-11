@@ -192,7 +192,6 @@ allTurns %>%
 lower_bound <- -0.025 + 0.000001
 upper_bound <- 1.025 - 0.000001
 breaks <- seq(lower_bound, upper_bound, by = ((upper_bound -lower_bound)/(21)))
-breaks <- seq(-0.025 + 0.000001, 1.025 - 0.000001, by = ((to - from)/(length.out - 1)))
 #breaks <- seq(-0.05, 1.05, by = 0.1)
 
 data_buckets <- cut(allTurns$value, breaks = breaks, include.lowest = TRUE)
@@ -236,6 +235,10 @@ allTurns %>%
 ```
 
 
+# Exploration of MiniMax
+
+## Average optimal by card
+
 For each card, the distribution of what its optimal probability is when it's an option.
 
 ```{r}
@@ -244,265 +247,53 @@ card_optimals <- allOptimalStrategies %>%
   filter(!is.na(optimal_prob))
 
 card_optimals %>% 
-  filter(spies == "00") %>% 
+  #filter(spies == "00") %>% 
+  filter(turn == 6) %>% 
   ggplot(aes(x = optimal_prob)) +
-  geom_histogram(bins = 10) +
+  geom_histogram(breaks = seq(0, 1, by=0.1)) +
   facet_grid(rows = vars(card))
 ```
 
 Average of each card, by turn
 
 ```{r}
-card_optimals %>% 
+card_avg_by_turn <- card_optimals %>% 
   #filter(spies == "00") %>% 
   select(card,turn,optimal_prob) %>% 
   filter(!is.na(optimal_prob)) %>% 
   group_by(card,turn) %>% 
-  summarize(avg_prob = mean(optimal_prob)) %>% 
+  summarize(avg_prob = mean(optimal_prob),
+            sd = sd(optimal_prob)) 
+
+# Avg probs by turn
+card_avg_by_turn %>% 
+  select(card, avg_prob, turn) %>% 
+  pivot_wider(names_from = card, values_from = avg_prob) %>% 
+  round(2)
+
+
+# Sd of optimal probs by turn
+card_avg_by_turn %>% 
+  select(card, sd, turn) %>% 
+  pivot_wider(names_from = card, values_from = sd) %>% 
+  round(2)
+
+# Adjusted probabilities
+card_avg_by_turn %>% 
+  mutate(
+    uniform_prob = 1 / (9-turn), # Uniform distribution's probability
+    adjusted_avg_prob = avg_prob /uniform_prob) %>% 
+  select(card, adjusted_avg_prob, turn) %>% 
+  pivot_wider(names_from = card, values_from = adjusted_avg_prob) %>% 
+  round(2)
+
+
+
+
+card_avg_by_turn %>% 
   ggplot(aes(x = turn, y = avg_prob, color = card)) +
   geom_line()
-  
 ```
-
-# Clustering
-
-```{r}
-k <- 12
-kmeans_spec <- k_means(num_clusters=k)
-
-kmeans_fit <- kmeans_spec %>% fit(~p1_o0+p1_o1+p1_o2+p1_o3+p1_o4+p1_o5+p1_o6+p1_o7,data = p1_optimal_turns)
-
-kmeans_fit$fit$tot.withinss
-kmeans_fit$fit$betweenss
-
-df_clusters <- kmeans_fit$fit$centers %>% 
-  data.frame() %>% mutate(cluster_num = 1:k) %>% 
-  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") 
-
-df_clusters %>% 
-  ggplot(aes(x = card, y = optimal_prob)) +
-  geom_bar(stat = "identity") +
-  facet_grid(rows = vars(cluster_num))
-```
-
-```{r cluster-descriptions}
-# Total number of turns in each cluster
-cluster_info <- allOptimalStrategies %>% 
-  #filter(turn <=5) %>% 
-  filter(p1_spy == 0 & p2_spy == 0) %>% 
-  mutate(cluster = kmeans_fit$fit$cluster)
-
-cluster_info %>% group_by(cluster) %>% 
-  summarize(n = n()) %>% 
-  mutate(prop = n/sum(n))
-```
-
-## Optimal data for each cluster
-
-```{r}
-# What turns are this particular cluster in?
-
-cluster_info %>%
-  group_by(turn, cluster) %>% 
-  summarize(count = n()) %>% 
-  pivot_wider(names_from ="turn", names_prefix="Turn_", values_from=count, id_cols=cluster)
-
-# How are the optimal probabilities distributed in real turns an example cluster?
-# TRY TO ADD CENTROIDS TO THIS
-df_cluster_probs <- cluster_info %>% 
-  filter(cluster==3) %>% 
-  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"),
-               names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") %>% 
-  filter(!is.na(optimal_prob)) %>% 
-  select(card, optimal_prob) 
-
-df_cluster_probs %>% 
-  ggplot(aes(x = optimal_prob)) +
-  geom_histogram(bins = 10) +
-  facet_grid(rows = vars(card))
-```
-
-**Human data counts in each cluster**
-
-```{r, waring=FALSE}
-# Joining human data with clusters
-human_clusters <- braverats %>% left_join(cluster_info, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
-                                                "p1_wins", "p2_wins", "p1_holds", "p2_holds",
-                                                "p1_spy", "p2_spy", "p1_general", "p2_general"))
-
-# Overall counts and props
-
-human_clusters %>% group_by(cluster) %>% 
-  summarize(n = n()) %>% 
-  mutate(prop = n/sum(n)) %>% 
-  arrange(desc(n))
-
-# By person counts and props
-
-human_clusters %>% group_by(cluster, p1_name) %>% 
-  summarize(n = n()) %>% 
-  group_by(p1_name) %>% 
-  mutate(prop_for_player = n/sum(n)) %>% 
-  arrange(desc(n))
-```
-
-```{r}
-# What turns are each cluster in for humans?
-
-human_clusters %>%
-  group_by(turn, cluster) %>% 
-  summarize(count = n()) %>% 
-  pivot_wider(names_from ="turn", names_prefix="Turn_", values_from=count, id_cols=cluster)
-
-# How are the optimal probabilities distributed in real turns from this cluster?
-human_clusters %>% 
-  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"),
-               names_prefix="p1_o", names_to = "card", values_to = "optimal_prob") %>% 
-  ggplot(aes(x = optimal_prob)) +
-  geom_histogram(bins = 10) +
-  facet_grid(rows = vars(card))
-```
-
-# Regression
-
-(This task may be better to do in Python actually? Looking into GLM to do the transformation.)
-
-```{r}
-df_predictors <- allOptimalStrategies %>% 
-  #filter(p1_spy==0, p2_spy==0) %>% 
-  select(
-  p1_o0,p1_o1,p1_o2,p1_o3,p1_o4,p1_o5,p1_o6,p1_o7, value, turn, #Outputs
-  p1_c0,p1_c1,p1_c2,p1_c3,p1_c4,p1_c5,p1_c6,p1_c7, #Inputs
-          p2_c0,p2_c1,p2_c2,p2_c3,p2_c4,p2_c5,p2_c6,p2_c7,
-          p1_wins,
-         p2_wins,
-         p1_general,p2_general,
-         p1_spy,p2_spy,
-         p1_holds,p2_holds) %>% 
-  mutate_all(~replace(., is.na(.), 0))
-
-#lin_reg_spec <- logistic_reg() %>%
-  #set_mode("regression") %>%
-#  set_engine("lm")
-
-#ins_lm_fit <- lin_reg_spec %>%
-#  fit(p1_o7 ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs
-#          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
-#          p1_wins+
-#         p2_wins+
-#         p1_general+p2_general+
-#         #p1_spy+p2_spy+
-#         p1_holds+p2_holds, data = df_predictors) 
-#
-#ins_lm_fit$fit$coefficients
-```
-
-## Regression to find value (win probability)
-
-Model 1: All predictors, linear regression
-
-```{r}
-lin_reg_spec <- linear_reg() %>%
-  set_mode("regression") %>%
-  set_engine("lm")
-
-value_lm_fit <- lin_reg_spec %>%
-  fit(value ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs
-          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
-          p1_wins+
-         p2_wins+
-         p1_general+p2_general+
-         p1_spy+p2_spy+
-         p1_holds+p2_holds, data = df_predictors) 
-
-value_lm_fit$fit$coefficients %>% round(4)
-```
-
-Model 2: Only P1's factors, linear regression
-
-```{r}
-lin_reg_spec <- linear_reg() %>%
-  set_mode("regression") %>%
-  set_engine("lm")
-
-value_lm_fit_2 <- lin_reg_spec %>%
-  fit(value ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs
-          #p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
-          p1_wins+
-         #p2_wins+
-         p1_general+#p2_general+
-         p1_spy+#p2_spy+
-         p1_holds#+p2_holds
-      , data = df_predictors) 
-
-value_lm_fit_2$fit$coefficients %>% round(4)
-```
-
-Model 3: Only P1's factors \* turn, linear regression
-
-```{r}
-lin_reg_spec <- linear_reg() %>%
-  set_mode("regression") %>%
-  set_engine("lm")
-
-value_lm_fit_3 <- lin_reg_spec %>%
-  fit(value ~ (p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ #Inputs
-          #p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
-          p1_wins+
-         #p2_wins+
-         p1_general+#p2_general+
-         p1_spy+#p2_spy+
-         p1_holds#+p2_holds)
-  ):turn + turn
-      , data = df_predictors %>% mutate(turn = factor(turn))) 
-
-fit_df <- value_lm_fit_3$fit$coefficients %>% round(4) %>% data.frame() 
-fit_df <- fit_df %>% mutate(predictor = rownames(fit_df)) %>% separate(predictor, sep = ":", into = c("var", "turn"))
-fit_df[1:8,]
-fit_df[-(1:8),] %>% 
-  pivot_wider(names_from = turn, values_from = ".")
-```
-
-### GLM
-
-Model 4: Only P1's factors, logistic curve
-
-```{r}
-glm_1 <- glm(value ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+
-          p1_wins+
-         p1_general+
-         p1_spy+
-         p1_holds, family = quasibinomial(link="logit"), data = df_predictors)
-
-summary(glm_1)
-
-# Interpret these as "multipying the odds of winning"
-exp(glm_1$coefficients)
-```
-
-Model 5: All factors, logit curve
-
-```{r}
-glm_1 <- glm(value ~ p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+
-          p1_wins+
-         p1_general+
-         p1_spy+
-         p1_holds, family = quasibinomial(link="logit"), data = df_predictors)
-
-summary(glm_1)
-
-# Interpret these as "multipying the odds of winning"
-exp(glm_1$coefficients)
-```
-
-```{r}
-#| eval = FALSE
-test_df <- data.frame()
-
-predict(glm_1, )
-```
-
-**Overall, regression proves difficult to operationalize and interpret.**
 
 # Spy turns
 
@@ -743,11 +534,6 @@ played_vs_optimal %>%
   mutate(viability_rate = Viable / (Viable + `Not Viable`)) %>% 
   arrange(turn_type, turn)
 ```
-
-```{r}
-
-```
-
 
 When only 1 card is viable?
 
@@ -1040,9 +826,14 @@ value_changes <- joined_human_ai %>%
 # This plot is "Optimal probability of playing the card that was played" vs "change in value of game".
 value_changes %>% 
   filter(optimal_prob > 0) %>% 
-  ggplot(aes(x = optimal_prob, y = value_change, color = P1)) +
-  geom_point() +
-  geom_smooth()
+  ggplot(aes(x = optimal_prob, y = value_change)) +
+  geom_point(aes(color = factor(P1)), alpha = 0.5) +
+  geom_smooth(color = "black") +
+  scale_color_brewer(palette = "Set1") +
+  labs(title = "Observed Value Changes vs. Optimal Probabilities in viable plays",
+       color = "Card Played",
+       y = "Value Change",
+       x = "MiniMax Probability of Card Played")
 ```
 
 ```{r}
@@ -1177,3 +968,48 @@ Distinct Game States
 joined_human_ai %>% 
   distinct(gamestate_str)
 ```
+
+# Human first turn dependence analysis
+
+Count of games by player
+
+```{r}
+player_game_counts <- joined_human_ai %>% 
+  filter(turn==1) %>% 
+  group_by(p1_name) %>% 
+  summarize(n = n()) %>%
+  arrange(desc(n))
+
+frequent_players <- player_game_counts %>% 
+  filter(n > 20) %>% 
+  pull(p1_name)
+
+frequent_players
+```
+
+```{r}
+first_card_relationships <- joined_human_ai %>% 
+  filter(turn == 1, p1_name %in% frequent_players) %>% 
+  group_by(p1_name) %>% 
+  arrange(Game, Turn) %>% 
+  mutate(previous_game_first_card = lag(P1, 1)) %>%
+  rename(first_card = P1) %>% 
+  ungroup() %>% 
+  filter(!is.na(previous_game_first_card)) %>% 
+  group_by(previous_game_first_card, first_card, p1_name) %>% 
+  summarize(n = n())
+
+first_card_relationships %>% 
+  pivot_wider(names_from = first_card, values_from = n) %>% 
+  arrange(p1_name) %>% 
+  select(previous_game_first_card, p1_name, `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`)
+
+first_card_relationships %>% 
+  group_by(p1_name) %>% 
+  mutate(prop = n/sum(n)) %>% 
+  ggplot(aes(x = previous_game_first_card, y = first_card)) +
+  geom_tile(aes(fill = prop)) +
+  geom_text(aes(label = n)) +
+  facet_grid(rows = ~p1_name, scales = "free")
+```
+
