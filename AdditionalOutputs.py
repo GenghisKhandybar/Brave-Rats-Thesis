@@ -56,3 +56,36 @@ def getAllStateProbabilities(knownSolutions, writePath, initialGameState = 'p1-0
         for key, value in stateProbs.items():
             f.write(f"{key}|{value}")
 
+# %%
+# Function to assign an expected value against  to every card option
+def writeAllOptionValues(knownSolutions, writePath, precision = 6):
+    # Creates a file that contains, for every subgame, the expected value of each option
+    with open(writePath, 'w') as f:
+        for subGameStr in knownSolutions:
+            tup = knownSolutions[subGameStr]
+            game = ratGame(subGameStr)
+
+            # Take P2's probabilities and truncate them to only available cards
+            p2_strat = helperFunctions.reduceProbabilities(tup[1][1], cards = game.cardsAvailable[1])
+            reducedMatrix = tup[2]
+            
+            # Find the values
+            values = np.matmul(p2_strat, np.transpose(reducedMatrix))
+
+            # Expand the values to the size of all 8 cards
+            # (This will make it easier to read and interpret)
+            expanded_values = helperFunctions.expandProbabilities(values, game.cardsAvailable[0])
+            expanded_values = [str(round(x, precision)) if x in list(game.cardsAvailable[0]) else "" for x in expanded_values]
+
+            print(",".join(expanded_values))
+
+            print(subGameStr)
+            print(values)
+
+
+            #f.write('%s:%s\n' % (key, get_solution_save_string(cardsAvailiable, value)))
+
+        
+        
+
+writeAllOptionValues(helperFunctions.read_known_solutions("SolutionFiles/updatedOptimalSolution.txt"), "OptionValues.csv")
