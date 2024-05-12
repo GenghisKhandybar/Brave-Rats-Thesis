@@ -512,8 +512,15 @@ played_vs_optimal %>%
   mutate(is_viable = ifelse(optimal_prob == 0, "Not Viable", "Viable")) %>% 
   group_by(is_viable, turn) %>% 
   summarize(n = n()) %>% 
-  pivot_wider(names_from = is_viable, values_from = n) %>% 
-  mutate(viability_rate = Viable / (Viable + `Not Viable`))
+  pivot_wider(names_from = is_viable, values_from = n, values_fill = 0) %>% 
+  mutate(total = Viable + `Not Viable`,
+         viability_rate = Viable / (total)) %>% 
+  # Add 95% Confidence Intervals
+  mutate(conf_lower = purrr::map2_dbl(Viable, total, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[1]),
+         conf_upper = purrr::map2_dbl(Viable, total, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
+
 
 # By turn type
 played_vs_optimal %>% 
@@ -522,7 +529,13 @@ played_vs_optimal %>%
   group_by(is_viable, turn_type) %>% 
   summarize(n = n()) %>% 
   pivot_wider(names_from = is_viable, values_from = n) %>% 
-  mutate(viability_rate = Viable / (Viable + `Not Viable`))
+  mutate(total = Viable + `Not Viable`,
+         viability_rate = Viable / (total)) %>% 
+  # Add 95% Confidence Intervals
+  mutate(conf_lower = purrr::map2_dbl(Viable, total, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[1]),
+         conf_upper = purrr::map2_dbl(Viable, total, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
 
 # By turn type and turn
 played_vs_optimal %>% 
@@ -530,8 +543,16 @@ played_vs_optimal %>%
   mutate(is_viable = ifelse(optimal_prob == 0, "Not Viable", "Viable")) %>% 
   group_by(is_viable, turn_type, turn) %>% 
   summarize(n = n()) %>% 
-  pivot_wider(names_from = is_viable, values_from = n) %>% 
-  mutate(viability_rate = Viable / (Viable + `Not Viable`)) %>% 
+  pivot_wider(names_from = is_viable, values_from = n, values_fill = 0) %>% 
+  mutate(total = Viable + `Not Viable`,
+         viability_rate = Viable / (total)) %>% 
+  # Add 95% Confidence Intervals
+  mutate(conf_lower = purrr::map2_dbl(Viable, total, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", 
+                                                    conf.level = 0.95)$conf.int[1]),
+         conf_upper = purrr::map2_dbl(Viable, total, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", 
+                                                    conf.level = 0.95)$conf.int[2])) %>% 
   arrange(turn_type, turn)
 ```
 
@@ -699,6 +720,13 @@ played_vs_optimal %>%
   summarize(total_mistakes = sum(absolute_mistake),
             total_plays = n(),
             mistake_ratio = mean(absolute_mistake)) %>% 
+  # Add 95% Confidence Intervals
+  mutate(conf_lower = purrr::map2_dbl(total_mistakes, total_plays, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", 
+                                                    conf.level = 0.95)$conf.int[1]),
+         conf_upper = purrr::map2_dbl(total_mistakes, total_plays, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", 
+                                                    conf.level = 0.95)$conf.int[2])) %>% 
   arrange(-total_plays)
 ```
 
