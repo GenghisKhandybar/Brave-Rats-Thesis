@@ -749,36 +749,50 @@ It's less difficult than anticipated to detect these differences, with players p
 prob_buckets <- played_vs_optimal %>% 
   #filter(optimal_prob > 0) %>% 
   #filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
-  mutate(prob_bucket = ceiling(optimal_prob*10)/10) %>% 
+  #mutate(prob_bucket = ceiling(optimal_prob*10)/10) %>% 
+    mutate(prob_bucket = ifelse(optimal_prob == 1, 1, ceiling(optimal_prob*10)/10-0.05)) %>% 
+
   group_by(prob_bucket) %>% 
   summarise(n_played = sum(this_card_played),
             n_opportunities = n(),
             prop_played = mean(this_card_played),
             avg_prop_in_bucket = mean(optimal_prob)) %>% 
-  mutate(bias_proportion = prop_played - avg_prop_in_bucket,
-            expected_plays = avg_prop_in_bucket * n_opportunities)
+  mutate(bias_proportion = prop_played - avg_prop_in_bucket) %>% 
+  # Add 95% Confidence Intervals
+  mutate(conf_lower = purrr::map2_dbl(n_played, n_opportunities, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[1]),
+         conf_upper = purrr::map2_dbl(n_played, n_opportunities, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
+
 
 prob_buckets %>% 
-  kable(digits = 2)
+  round(digits = 2)
 
+  
+  
 prob_buckets%>% 
-  ggplot(aes(x = avg_prop_in_bucket, y = prop_played, size = n_opportunities)) +
+  ggplot(aes(x = avg_prop_in_bucket, y = prop_played)) + #, size = n_opportunities
   geom_point(stat = "identity")  +
   geom_abline(intercept = 0, slope = 1, color = "red") +
-  scale_x_continuous(limits = c(0, 1), expand = expansion(add = c(0.01,0.01))) +
-  scale_y_continuous(limits = c(0, 1), expand = expansion(add = c(0,0))) +
-  labs(title = "Observed cards played vs. optimal probabilities (bucketed)",
+  geom_errorbar(aes(ymin = conf_lower, ymax = conf_upper), width = 0.05, size = 0.5, color = "grey33") + # Add confidence intervals
+
+  scale_x_continuous(limits = c(0, 1), 
+                     expand = expansion(add = c(0.01,0.01)),
+                     breaks = seq(0, 1, length.out = 11)) +
+  scale_y_continuous(limits = c(0, 1), 
+                     expand = expansion(add = c(0.01,0.001)), 
+                     breaks = seq(0, 1, length.out = 11)) +
+  labs(title = "Observed Proportion of Cards Played vs. Optimal Probabilities",
        #subtitle = "",
-       x = "Average poportion vs. optimal proportion",
+       x = "Optimal Probability to Play Card",
        y = "% played")  +
-  theme_bw() +
+  theme_minimal() +
   theme(
     # Remove the y-axis
     axis.title.y = element_blank(),
-    axis.text.y = element_blank(),
+    panel.grid.minor = element_blank(),
+
     # Set x-axis breaks from 0 to 7
-    #axis.ticks.x = element_line(),
-    #axis.text.x = element_text(size = 10),
     axis.ticks.length.x = unit(0, "cm") # Adjust tick length if needed
   )
 ```
