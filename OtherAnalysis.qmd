@@ -245,3 +245,120 @@ predict(glm_1, )
 ```
 
 **Overall, regression proves difficult to operationalize and interpret.**
+
+# Analysis of viability
+
+In this section I use decision trees to see how easy it is to tell whether a card is "viable" in a certain situation or not. A card is "viable" if the optimal probability to play it is above 0.
+
+```{r}
+# This dataset looks card-by-card whether each card is viable in a particular gamestate.
+# The idea is that if it's simple to tell which cards are viable, we can more easily figure out the play patterns that will work
+
+card_viability <- allOptimalStrategies %>% 
+  filter(p2_spy==FALSE, turn <8) %>% 
+  # Extracting the optimal card for each player
+  pivot_longer(cols = c( "p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "p1_card", values_to = "p1_optimal_prob") %>% 
+  filter(!is.na(p1_optimal_prob)) %>% 
+  mutate(p1_card=as.factor(substring(p1_card,5,6)),
+         p1_card_viable = ifelse(p1_optimal_prob>0,"viable","not viable"))
+  
+
+# card_viability %>% sample_n(10)
+```
+
+We'll make a tree for each card (I'll just do a few for now to illustrate).
+
+For card 0 (musician)
+
+```{r}
+card_of_interest = 0 # Doing each card's tree 1 at a time
+
+tree_mod <- decision_tree(mode = "classification", tree_depth = 3, cost_complexity = double(1)) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+spy_recipe = recipe(p1_card_viable ~ #p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = card_viability)
+
+spy_wf = workflow() %>%
+  add_recipe(spy_recipe) %>%
+  add_model(tree_mod)
+
+spy_fit <- spy_wf %>% fit(card_viability %>% filter(p1_card==card_of_interest))
+
+tree_fitted <- spy_fit %>% 
+  extract_fit_parsnip()
+
+tree_fitted
+
+rpart.plot(tree_fitted$fit)
+```
+
+For princess (1)
+
+```{r}
+card_of_interest = 1 # Doing each card's tree 1 at a time
+
+tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+spy_recipe = recipe(p1_card_viable ~ #p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = card_viability)
+
+spy_wf = workflow() %>%
+  add_recipe(spy_recipe) %>%
+  add_model(tree_mod)
+
+spy_fit <- spy_wf %>% fit(card_viability %>% filter(p1_card==card_of_interest))
+
+tree_fitted <- spy_fit %>% 
+  extract_fit_parsnip()
+
+tree_fitted
+
+rpart.plot(tree_fitted$fit)
+```
+
+For card 7 (Prince)
+
+```{r}
+card_of_interest = 7 # Doing each card's tree 1 at a time
+
+tree_mod <- decision_tree(mode = "classification", tree_depth = 4, cost_complexity = double(1)) %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+spy_recipe = recipe(p1_card_viable ~ #p1_c0+p1_c1+p1_c2+p1_c3+p1_c4+p1_c5+p1_c6+p1_c7+ # All gamestate information
+          p2_c0+p2_c1+p2_c2+p2_c3+p2_c4+p2_c5+p2_c6+p2_c7+
+          p1_wins+
+         p2_wins+
+         p1_general+p2_general+
+         #p1_spy+p2_spy+
+         p1_holds+p2_holds, data = card_viability)
+
+spy_wf = workflow() %>%
+  add_recipe(spy_recipe) %>%
+  add_model(tree_mod)
+
+spy_fit <- spy_wf %>% fit(card_viability %>% filter(p1_card==card_of_interest))
+
+tree_fitted <- spy_fit %>% 
+  extract_fit_parsnip()
+
+tree_fitted
+
+rpart.plot(tree_fitted$fit)
+  
+```
+
