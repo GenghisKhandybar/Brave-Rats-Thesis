@@ -369,7 +369,6 @@ rpart.plot(tree_fitted$fit)
 In this section, we're looking at every card a player had the option to play, the optimal probability to play it, and whether they played it.
 
 
-
 ## Absolute mistakes
 
 "Absolute mistake" = playing a card with optimal probability of 0. These plays are against theory, but may still be beneficial if you have a confident prediction about your opponent's choice.
@@ -903,15 +902,20 @@ Count of games by player
 player_game_counts <- joined_human_ai %>% 
   filter(turn==1) %>% 
   group_by(p1_name) %>% 
-  summarize(n = n()) %>%
-  arrange(desc(n))
+  summarize(n_games = n()) %>%
+  arrange(desc(n_games)) %>% 
+  # Create anonymous player codes
+  mutate(player_code = paste("Player", LETTERS[1:length(p1_name)]))
 
 frequent_players <- player_game_counts %>% 
-  filter(n > 20) %>% 
+  filter(n_games > 20) %>% 
   pull(p1_name)
 
-frequent_players
+player_game_counts %>% 
+  filter(p1_name %in% frequent_players)
 ```
+
+## Just P1's card
 
 ```{r}
 first_card_relationships <- joined_human_ai %>% 
@@ -926,16 +930,59 @@ first_card_relationships <- joined_human_ai %>%
   summarize(n = n())
 
 first_card_relationships %>% 
-  pivot_wider(names_from = first_card, values_from = n) %>% 
+  pivot_wider(names_from = first_card, values_from = n, values_fill = 0) %>% 
   arrange(p1_name) %>% 
   select(previous_game_first_card, p1_name, `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`)
 
+# Excluding 0's
 first_card_relationships %>% 
-  group_by(p1_name) %>% 
-  mutate(prop = n/sum(n)) %>% 
+  merge(player_game_counts, by="p1_name") %>% 
+  mutate(p1_name_label = paste(player_code, " (n=", as.character(n_games), ")", sep = "")) %>% 
+  group_by(p1_name, previous_game_first_card) %>% 
+  mutate(`Transition Probability` = n/sum(n),
+         first_card = factor(first_card, levels = c(0,1,2,3,4,5,6,7)),
+         previous_game_first_card = factor(previous_game_first_card, levels = c(0,1,2,3,4,5,6,7))) %>% 
   ggplot(aes(x = previous_game_first_card, y = first_card)) +
-  geom_tile(aes(fill = prop)) +
+  
+  geom_tile(aes(fill = `Transition Probability`)) +
+  
+  geom_abline(intercept = 0, slope = 1, color = "red", size=2, alpha = 0.15) +
   geom_text(aes(label = n)) +
-  facet_grid(rows = ~p1_name, scales = "free")
+  
+  facet_wrap(~p1_name_label, axes = "all") +
+  scale_x_discrete(expand = c(0,0)) +
+  scale_y_discrete(expand = c(0,0)) +
+  scale_fill_gradient(low = "gray80", high = "cornflowerblue") + # Adjust the colors here
+
+  theme_bw() +
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_line(color = "gray", size = 0.5)
+  ) +
+  labs(title = "Counts of First Card Played, by First Card Played in Previous Game",
+       x = "First Card Played in the Previous Game",
+       y = "")
+```
+
+## Win/Loss Change/Stay
+
+```{r}
+first_outcome_relationships <- joined_human_ai %>% 
+  filter(turn == 1, p1_name %in% frequent_players) %>% 
+  group_by(p1_name) %>% 
+  arrange(Game, Turn) %>% 
+  mutate(previous_game_first_card = lag(P1, 1),
+         stay_or_change = ifelse(P1 == previous_game_first_card, "Stay", "Change"),
+         previous_game_first_outcome = lag(Round_Winner, 1)) %>%
+  rename(first_card = P1) %>% 
+  ungroup() %>% 
+  filter(!is.na(previous_game_first_card)) %>% 
+  group_by(p1_name, stay_or_change, previous_game_first_outcome) %>% 
+  summarize(n = n())
+
+first_outcome_relationships %>% 
+  pivot_wider(names_from = stay_or_change, values_from = n, values_fill = 0) %>% 
+  mutate(total = Change + Stay) %>% 
+  arrange(p1_name, previous_game_first_outcome)
 ```
 
