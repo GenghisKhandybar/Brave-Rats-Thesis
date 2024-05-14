@@ -947,6 +947,25 @@ first_card_relationships %>%
        y = "")
 ```
 
+## Probabilities of Changing given independence
+
+```{r}
+repeat_probs <- joined_human_ai %>% 
+  filter(turn == 1, p1_name %in% frequent_players) %>% 
+  group_by(p1_name, P1) %>% 
+  summarize(n = n()) %>% 
+  group_by(p1_name) %>% mutate(n_total = sum(n)) %>% ungroup() %>% 
+  mutate(card_proportion = n/n_total,
+         # Probability of playing a card twice in a row = p(card)^2
+         probability_repeat = card_proportion^2 
+         )
+
+repeat_probs %>% 
+  group_by(p1_name) %>% 
+  summarize(repeat_probability = sum(probability_repeat)) %>% 
+  mutate(change_probability = 1-repeat_probability)
+```
+
 ## Win/Loss Change/Stay
 
 ```{r}
@@ -980,3 +999,6 @@ first_outcome_intermediate %>%
   select(previous_game_first_outcome, p1_name, change_prop_string) %>% 
   pivot_wider(names_from = previous_game_first_outcome, values_from = change_prop_string)
 ```
+
+
+
