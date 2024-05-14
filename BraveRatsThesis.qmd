@@ -717,10 +717,6 @@ joined_human_ai %>% filter(is.na(value)) %>%
 ```
 
 ```{r}
-allTurns %>% filter(turn==5, p1_holds==2, p2_holds==2)
-```
-
-```{r}
 joined_human_ai %>% 
   filter(Game==1)
 ```
@@ -796,7 +792,8 @@ Distinct Game States
 
 ```{r}
 joined_human_ai %>% 
-  distinct(gamestate_str)
+  distinct(gamestate_str) %>% 
+  nrow()
 ```
 
 # Human first turn dependence analysis
