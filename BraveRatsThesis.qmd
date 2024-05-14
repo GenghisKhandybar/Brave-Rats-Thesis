@@ -22,38 +22,97 @@ library(tidymodels)
 library(knitr)
 ```
 
-## Nash optimal data
+## Model data
 
 ```{r}
+#| warning: false
+
+# Get functions
 source("readModelData.r")
+
+# A dataframe of MiniMax solution to every turn
+allTurns <- getAllTurns("SolutionFiles/updatedOptimalSolution.txt")
+# MiniMax strategy for every turn (spy turns separated into N pieces)
+allOptimalStrategies <- getAllStrategies(allTurns)
+
+# Loading results from the Best Response model
+# A dataframe of MiniMax solution to every turn
+allTurns_BR <- getAllTurns("SolutionFiles/DefeatVsSimplex.txt")
+# Best Response to MiniMax strategy for every turn (spy turns separated into N pieces)
+allStrategies_BR <- getAllStrategies(allTurns_BR)
+```
+
+Extract which cards are viable. We must take these from the Best Response model because the Simplex Method for Minimax sometimes has to choose between multiple cards, each of which is viable. Best Response always chooses randomly between all viable choices.
+
+```{r}
+# p1_vx = whether card x is viable
+cardViability <- allStrategies_BR %>% 
+  mutate(p1_v0 = p1_o0 > 0,
+         p1_v1 = p1_o1 > 0,
+         p1_v2 = p1_o2 > 0,
+         p1_v3 = p1_o3 > 0,
+         p1_v4 = p1_o4 > 0,
+         p1_v5 = p1_o5 > 0,
+         p1_v6 = p1_o6 > 0,
+         p1_v7 = p1_o7 > 0) %>% 
+  select(paste("p1_v", 0:7, sep=''), 
+         paste("p1_c", 0:7, sep=''), # Must keep all card variables for identification
+         paste("p2_c", 0:7, sep=''), 
+         "p1_wins", "p2_wins", "p1_holds", "p2_holds",
+         "p1_spy", "p2_spy", "p1_general", "p2_general", "responding_to_card", "gamestate_str"
+         )
 ```
 
 
 ## Human data
 
 ```{r read-human-data}
-#braverats <- read.csv("BraveRatsData.csv")
 source("readHumanData.r")
 ```
 
+## Joining human and model data
+
 ```{r human-joined-ai}
-joined_human_ai <- braverats %>% left_join(allOptimalStrategies, by=c(paste("p1_c", 0:7, sep=''), paste("p2_c", 0:7, sep=''), 
-                                                "p1_wins", "p2_wins", "p1_holds", "p2_holds",
-                                                "p1_spy", "p2_spy", "p1_general", "p2_general", "responding_to_card"))
+joined_human_ai <- braverats %>% 
+  left_join(allOptimalStrategies, 
+             by=c(paste("p1_c", 0:7, sep=''), 
+                  paste("p2_c", 0:7, sep=''), 
+                  "p1_wins", "p2_wins", "p1_holds", "p2_holds",
+                  "p1_spy", "p2_spy", "p1_general", "p2_general", "responding_to_card"))
+
+joined_human_ai_br <- braverats %>% 
+  left_join(cardViability, 
+             by=c(paste("p1_c", 0:7, sep=''), 
+                  paste("p2_c", 0:7, sep=''), 
+                  "p1_wins", "p2_wins", "p1_holds", "p2_holds",
+                  "p1_spy", "p2_spy", "p1_general", "p2_general", "responding_to_card"))
 ```
 
 ```{r}
 #| label: player-optimal-data-reshaping
 
+# MiniMax probabilities for each option a human had a choice to play
 played_vs_optimal <- joined_human_ai %>% 
-  pivot_longer(cols = c("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7"), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
+  pivot_longer(cols = paste("p1_o", 0:7, sep=''), names_to = "card_untrimmed", values_to = "optimal_prob") %>%
   mutate(this_card = substring(card_untrimmed, 5,6),
          this_card_played = if_else(P1==this_card, 1, 0),
          actual_card_played = P1,
          turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
-  select(Game, turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy, turn_type) %>% 
+  select(Game, Turn, p1_name, this_card, this_card_played, actual_card_played, optimal_prob, gamestate_str, p1_spy, p2_spy, turn_type) %>% 
   filter(!is.na(optimal_prob)) # Removing invalid cards
 
+# Viable status for each
+played_vs_viable <- joined_human_ai_br %>% 
+  pivot_longer(cols = paste("p1_v", 0:7, sep=''), names_to = "card_untrimmed", values_to = "viability") %>%
+  mutate(this_card = substring(card_untrimmed, 5,6),
+         this_card_played = if_else(P1==this_card, 1, 0),
+         actual_card_played = P1,
+         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+  select(Game, Turn, p1_name, this_card, this_card_played, actual_card_played, viability, gamestate_str, p1_spy, p2_spy, turn_type) %>% 
+  filter(!is.na(viability)) # Removing invalid cards
+
+played_vs_optimal <- played_vs_optimal %>% 
+  merge(played_vs_viable)
 #played_vs_optimal %>% sample_n(8)
 ```
 
@@ -199,11 +258,21 @@ card_avg_by_turn %>%
   pivot_wider(names_from = card, values_from = adjusted_avg_prob) %>% 
   round(2)
 
-
+# Adjusted Sd of optimal probs by turn
+card_avg_by_turn %>% 
+  mutate(uniform_prob = 1 / (9-turn),
+         adj_sd = sd / uniform_prob) %>% 
+  select(card, adj_sd, turn) %>% 
+  pivot_wider(names_from = card, values_from = adj_sd) %>% 
+  round(2)
 
 
 card_avg_by_turn %>% 
-  ggplot(aes(x = turn, y = avg_prob, color = card)) +
+  mutate(
+    uniform_prob = 1 / (9-turn), # Uniform distribution's probability
+    adjusted_avg_prob = avg_prob /uniform_prob) %>% 
+  ggplot(aes(x = turn, y = adjusted_avg_prob, color = card)) +
+  geom_text(aes(label = card)) +
   geom_line()
 ```
 
