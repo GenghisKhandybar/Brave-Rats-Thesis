@@ -85,10 +85,9 @@ allTurns <- getAllTurns("SolutionFiles/updatedOptimalSolution.txt")
 
 allOptimalStrategies <- getAllStrategies(allTurns)
 
-p1_optimal_turns <- allOptimalStrategies %>% 
-  #filter(turn <=5) %>% 
-  filter(p1_spy == 0 & p2_spy == 0) %>% 
-  select("p1_o0","p1_o1","p1_o2","p1_o3","p1_o4","p1_o5","p1_o6","p1_o7") %>% 
-  mutate_all(~replace(., is.na(.), 0))
+# Loading results from the Best Response model
+# These will determine which cards are viable
+allTurns_BR <- getAllTurns("SolutionFiles/DefeatVsSimplex.txt")
+allStrategies_BR <- getAllStrategies(allTurns_BR)
 
 
