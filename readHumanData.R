@@ -385,6 +385,25 @@ braverats <- braverats %>%
 
 colnames(braverats) <- sub('P1_C', 'p1_c', colnames(braverats), fixed=TRUE)
 colnames(braverats) <- sub('P2_C', 'p2_c', colnames(braverats), fixed=TRUE)
+# Check that these are the same
+#colnames(braverats)
+#colnames(allTurns)
 
-colnames(braverats)
-colnames(allTurns)
+# Anonymize names by game counts
+player_game_counts <- braverats %>% 
+  filter(Turn==1) %>% 
+  group_by(p1_name) %>% 
+  summarize(n_games = n()) %>%
+  arrange(desc(n_games)) %>% 
+  # Create anonymous player codes
+  mutate(player_code = paste("Player", LETTERS[1:length(p1_name)]))
+
+braverats <- braverats %>% 
+  merge(player_game_counts, by="p1_name") %>%
+  mutate(p1_name = player_code) %>% 
+  select(-n_games, -player_code) %>% 
+  merge(player_game_counts, by.x = "p2_name", by.y = "p1_name") %>% 
+  mutate(p2_name = player_code) %>% 
+  select(-n_games, -player_code)
+
+
