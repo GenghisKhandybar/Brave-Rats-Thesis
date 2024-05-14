@@ -76,18 +76,5 @@ getAllStrategies <- function(allTurns){
 }
 
 
-# Lists of optimal strategy columns
-
-# A dataframe of just the optimal probabilities (0 for non-possibilities)
-# Used for clustering later
-
-allTurns <- getAllTurns("SolutionFiles/updatedOptimalSolution.txt")
-
-allOptimalStrategies <- getAllStrategies(allTurns)
-
-# Loading results from the Best Response model
-# These will determine which cards are viable
-allTurns_BR <- getAllTurns("SolutionFiles/DefeatVsSimplex.txt")
-allStrategies_BR <- getAllStrategies(allTurns_BR)
 
 
