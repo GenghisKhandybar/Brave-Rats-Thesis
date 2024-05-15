@@ -107,7 +107,7 @@ played_vs_viable <- joined_human_ai_br %>%
   mutate(this_card = substring(card_untrimmed, 5,6),
          this_card_played = if_else(P1==this_card, 1, 0),
          actual_card_played = P1,
-         turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
+         turn_type = ifelse(p1_spy, "Going 2nd", ifelse(p2_spy, "Going 1st", "Simultaneous"))) %>% 
   select(Game, Turn, p1_name, this_card, this_card_played, actual_card_played, viability, gamestate_str, p1_spy, p2_spy, turn_type) %>% 
   mutate(is_viable = ifelse(viability, "Viable", "Not Viable")) %>% 
   filter(!is.na(viability)) # Removing cards not in hand
@@ -116,7 +116,6 @@ played_vs_viable <- joined_human_ai_br %>%
 
 played_vs_optimal <- played_vs_optimal %>% 
   merge(played_vs_viable)
-#played_vs_optimal %>% sample_n(8)
 ```
 
 # EDA
@@ -171,8 +170,6 @@ breaks <- seq(lower_bound, upper_bound, by = ((upper_bound -lower_bound)/(21)))
 
 data_buckets <- cut(allTurns$value, breaks = breaks, include.lowest = TRUE)
 table(data_buckets)
-allTurns %>% 
-  filter(value == 0.025)
 
 allTurns %>% 
   mutate(turn = paste0("Turn ", turn)) %>% 
@@ -358,9 +355,9 @@ In this section, we're looking at every card a player had the option to play, th
 
 Which cards are most often played when they shouldn't have?
 
-### Mistakes in non-spy turns
+### Mistake Proportion Stats
 
-Counts of all absolute mistakes made by card
+Proportion of cards that are viable and not viable, by whether they were played or not.
 
 ```{r}
 # Overall 
@@ -370,8 +367,10 @@ played_vs_optimal %>%
   summarize(n = n()) %>% 
   pivot_wider(names_from = is_viable, values_from = n) %>% 
   mutate(viability_rate = Viable / (Viable + `Not Viable`))
+```
 
-# By turn
+Mistakes by turn
+```{r}
 played_vs_optimal %>% 
   filter(this_card_played == 1) %>% 
   group_by(is_viable, Turn) %>% 
@@ -386,9 +385,11 @@ played_vs_optimal %>%
          conf_upper = 
            purrr::map2_dbl(Viable, total, 
                            ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
+```
 
+By turn type
 
-# By turn type
+```{r}
 played_vs_optimal %>% 
   filter(this_card_played == 1) %>% 
   group_by(is_viable, turn_type) %>% 
@@ -402,7 +403,19 @@ played_vs_optimal %>%
          conf_upper = purrr::map2_dbl(Viable, total, 
                                        ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
 
-# By turn type and turn
+# Manually checking which plays were correct, to make sure there's no data error
+played_vs_optimal %>% 
+  filter(turn_type == "Going 1st", viability == TRUE, this_card_played == 1) %>% 
+  arrange(Game, Turn)
+
+played_vs_optimal %>% 
+  filter(turn_type == "Going 2nd", viability == TRUE, this_card_played == 1) %>% 
+  arrange(Game, Turn)
+```
+
+By turn type and turn
+
+```{r}
 played_vs_optimal %>% 
   filter(this_card_played == 1) %>% 
   group_by(is_viable, turn_type, Turn) %>% 
@@ -476,20 +489,22 @@ played_vs_optimal %>%
 
 ####When going first (opponent used spy):
 
+What cards were played when they shouldn't have?
+
 ```{r}
 # Overall
 played_vs_optimal %>% 
-  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob == 0, this_card_played == 1) %>% 
+  filter(p1_spy == FALSE & p2_spy == TRUE, !viability, this_card_played == 1) %>% 
   group_by(this_card) %>% #, turn
   summarise(n_mistakes = n())
 
 
 # Turn by turn
 played_vs_optimal %>% 
-  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob == 0, this_card_played == 1) %>% 
-  group_by(this_card, turn) %>% #
+  filter(p1_spy == FALSE & p2_spy == TRUE, !viability, this_card_played == 1) %>% 
+  group_by(this_card, Turn) %>% #
   summarise(n_mistakes = n()) %>% 
-  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = Turn)
 ```
 
 What should've been played instead? (by turn)
@@ -497,18 +512,18 @@ What should've been played instead? (by turn)
 ```{r}
 # Turn by turn
 played_vs_optimal %>% 
-  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob > 0, this_card_played == 0) %>% 
-  group_by(this_card, turn) %>% #
+  filter(p1_spy == FALSE & p2_spy == TRUE, viability, this_card_played == 0) %>% 
+  group_by(this_card, Turn) %>% #
   summarise(n_mistakes = n()) %>% 
-  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = Turn)
 ```
 
 Actual card vs. optimal card/cards
 
 ```{r}
 played_vs_optimal %>% 
-  filter(turn==3) %>% 
-  filter(p1_spy == FALSE & p2_spy == TRUE, optimal_prob > 0, this_card_played == 0) %>% 
+  #filter(Turn==3) %>% 
+  filter(p1_spy == FALSE & p2_spy == TRUE, viability, this_card_played == 0) %>% 
   group_by(this_card, actual_card_played) %>% #
   summarise(n_mistakes = n()) %>% 
   pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = actual_card_played) %>% 
@@ -517,20 +532,22 @@ played_vs_optimal %>%
 
 #### When going second (opponent used spy)
 
+Overall mistakes and turn-by-turn
+
 ```{r}
 # Overall
 played_vs_optimal %>% 
-  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
+  filter(p1_spy == TRUE & p2_spy == FALSE, !viability, this_card_played == 1) %>% 
   group_by(this_card) %>% #, turn
   summarise(n_mistakes = n())
 
 
 # Turn by turn
 played_vs_optimal %>% 
-  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
-  group_by(this_card, turn) %>% #
+  filter(p1_spy == TRUE & p2_spy == FALSE, !viability, this_card_played == 1) %>% 
+  group_by(this_card, Turn) %>% #
   summarise(n_mistakes = n()) %>% 
-  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = Turn)
 ```
 
 What should've been played instead? (by turn)
@@ -538,18 +555,18 @@ What should've been played instead? (by turn)
 ```{r}
 # Turn by turn
 played_vs_optimal %>% 
-  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob > 0, this_card_played == 0) %>% 
-  group_by(this_card, turn) %>% #
+  filter(p1_spy == TRUE & p2_spy == FALSE, viability, this_card_played == 0) %>% 
+  group_by(this_card, Turn) %>% #
   summarise(n_mistakes = n()) %>% 
-  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = Turn)
 ```
 
 Actual card vs. optimal card/cards
 
 ```{r}
 played_vs_optimal %>% 
-  filter(turn==3) %>% 
-  filter(p1_spy == TRUE & p2_spy == FALSE, optimal_prob > 0, this_card_played == 0) %>% 
+  #filter(turn==3) %>% 
+  filter(p1_spy == TRUE & p2_spy == FALSE, viability, this_card_played == 0) %>% 
   group_by(this_card, actual_card_played) %>% #
   summarise(n_mistakes = n()) %>% 
   pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = actual_card_played) %>% 
@@ -617,15 +634,12 @@ played_vs_optimal %>%
          conf_upper = purrr::map2_dbl(total_mistakes, total_plays, 
                                        ~ binom.test(.x, .y, alternative = "two.sided", 
                                                     conf.level = 0.95)$conf.int[2])) %>% 
-  arrange(p1_name, -total_plays) %>% head(9)
+  arrange(p1_name, turn_type) %>% head(9)
   
 ```
+# Proportion of Play Analysis
 
-## All Turns
-
-## Non-absolute errors
-
-### First turn table
+## First turn table
 
 ```{r}
 played_vs_optimal %>%
@@ -638,7 +652,7 @@ played_vs_optimal %>%
   kable(digits = 3)
 ```
 
-#### Overall proportions played by bucket.
+## Overall proportions played by bucket.
 
 Here, we put a player's options into "buckets" based on how often they should optimally play it.
 
@@ -646,11 +660,13 @@ It's less difficult than anticipated to detect these differences, with players p
 
 ```{r}
 prob_buckets <- played_vs_optimal %>% 
-  #filter(optimal_prob > 0) %>% 
   #filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
-  #mutate(prob_bucket = ceiling(optimal_prob*10)/10) %>% 
-    mutate(prob_bucket = ifelse(optimal_prob == 1, 1, ceiling(optimal_prob*10)/10-0.05)) %>% 
-
+  # If a card is not viable, put it in the 0 bucket.
+  # If it is viable (even a viable 0%, put it in in the 0.05 bucket)
+    mutate(prob_bucket = ifelse(!viability, 0,
+                                ifelse(optimal_prob == 1, 1, ceiling(
+                                  pmax(optimal_prob,0.0001) # To move viable 0% plays to the 5% bucket
+                                  *10)/10-0.05))) %>% 
   group_by(prob_bucket) %>% 
   summarise(n_played = sum(this_card_played),
             n_opportunities = n(),
@@ -729,7 +745,8 @@ When a player makes an "error" how does that affect their "win probability"? Are
 
 value_changes <- joined_human_ai %>% 
   group_by(Game, p1_name) %>% 
-   # next_turn_value is the value of the next turn. If game is lost, use game outcome
+  arrange(turn) %>% 
+   # next_turn_value is the value of the next turn. If game is over, use game outcome
   mutate(next_turn_value = if_else(Turn != max(Turn), lead(value, n=1),
                                 if_else(Outcome == "Win", 1, if_else(Outcome == "Loss", 0, 0.5))),
          value_change = next_turn_value - value) %>% 
@@ -737,7 +754,7 @@ value_changes <- joined_human_ai %>%
   
 # This plot is "Optimal probability of playing the card that was played" vs "change in value of game".
 value_changes %>% 
-  filter(optimal_prob > 0) %>% 
+  filter(viability) %>% 
   ggplot(aes(x = optimal_prob, y = value_change)) +
   geom_point(aes(color = factor(P1)), alpha = 0.5) +
   geom_smooth(color = "black") +
@@ -751,11 +768,12 @@ value_changes %>%
 ```{r}
 value_changes %>% 
   #filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
-  mutate(abs_mistake = if_else(optimal_prob == 0, "Mistake", "Non-mistake")) %>% 
-  group_by(abs_mistake) %>% 
+  group_by(is_viable) %>% 
   summarize(avg_change = mean(value_change), 
             std_dev = sd(value_change),
             n = n())
+
+value_changes$value_change
 
 # t-test on difference (non-spy)
 SE = (0.2362542/239 + 0.2356995/797)^0.5
