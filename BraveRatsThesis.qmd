@@ -366,7 +366,6 @@ Counts of all absolute mistakes made by card
 # Overall 
 played_vs_optimal %>% 
   #filter(this_card_played == 1) %>% 
-  mutate(is_viable = ifelse(viability, "Viable", "Not Viable")) %>% 
   group_by(is_viable, this_card_played) %>% 
   summarize(n = n()) %>% 
   pivot_wider(names_from = is_viable, values_from = n) %>% 
@@ -375,11 +374,9 @@ played_vs_optimal %>%
 # By turn
 played_vs_optimal %>% 
   filter(this_card_played == 1) %>% 
-  mutate(is_viable = ifelse(viability, "Viable", "Not Viable")) %>% 
-
-  group_by(viability, Turn) %>% 
+  group_by(is_viable, Turn) %>% 
   summarize(n = n()) %>% 
-  pivot_wider(names_from = viability, values_from = n, values_fill = 0) %>% 
+  pivot_wider(names_from = is_viable, values_from = n, values_fill = 0) %>% 
   mutate(total = Viable + `Not Viable`,
          viability_rate = Viable / (total)) %>% 
   # Add 95% Confidence Intervals
@@ -394,7 +391,6 @@ played_vs_optimal %>%
 # By turn type
 played_vs_optimal %>% 
   filter(this_card_played == 1) %>% 
-  mutate(is_viable = ifelse(viability, "Viable", "Not Viable")) %>% 
   group_by(is_viable, turn_type) %>% 
   summarize(n = n()) %>% 
   pivot_wider(names_from = is_viable, values_from = n) %>% 
@@ -409,8 +405,7 @@ played_vs_optimal %>%
 # By turn type and turn
 played_vs_optimal %>% 
   filter(this_card_played == 1) %>% 
-  mutate(is_viable = ifelse(viability, "Viable", "Not Viable")) %>% 
-  group_by(is_viable, turn_type, turn) %>% 
+  group_by(is_viable, turn_type, Turn) %>% 
   summarize(n = n()) %>% 
   pivot_wider(names_from = is_viable, values_from = n, values_fill = 0) %>% 
   mutate(total = Viable + `Not Viable`,
@@ -422,7 +417,7 @@ played_vs_optimal %>%
          conf_upper = purrr::map2_dbl(Viable, total, 
                                        ~ binom.test(.x, .y, alternative = "two.sided", 
                                                     conf.level = 0.95)$conf.int[2])) %>% 
-  arrange(turn_type, turn)
+  arrange(turn_type, Turn)
 ```
 
 When only 1 card is viable?
@@ -811,7 +806,7 @@ joined_human_ai %>%
 joined_human_ai %>% 
   mutate(game_player = str_c("Game",Game,p1_name)) %>% 
   ggplot(aes(x = turn, y = value, color=Outcome, group = game_player)) +
-  geom_line(alpha = 0.5) +
+  geom_line(alpha = 0.1) +
   facet_grid(rows = vars(Outcome))
 ```
 
@@ -913,13 +908,9 @@ first_card_relationships <- joined_human_ai %>%
   group_by(previous_game_first_card, first_card, p1_name) %>% 
   summarize(n = n())
 
-first_card_relationships %>% 
-  pivot_wider(names_from = first_card, values_from = n, values_fill = 0) %>% 
-  arrange(p1_name) %>% 
-  select(previous_game_first_card, p1_name, `0`, `1`, `2`, `3`, `4`, `5`, `6`, `7`)
-
 # Excluding 0's
 first_card_relationships %>% 
+  merge(player_game_counts, on="p1_name") %>% 
   mutate(p1_name_label = paste(p1_name, " (n=", as.character(n_games), ")", sep = "")) %>% 
   group_by(p1_name, previous_game_first_card) %>% 
   mutate(`Transition Probability` = n/sum(n),
