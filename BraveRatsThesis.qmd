@@ -637,6 +637,65 @@ played_vs_optimal %>%
   arrange(p1_name, turn_type) %>% head(9)
   
 ```
+
+# Value vs. winrate analysis
+
+Excluding ties
+
+```{r}
+value_buckets <- joined_human_ai %>% 
+  filter(Outcome != "Tie") %>% 
+  # If a card is not viable, put it in the 0 bucket.
+  # If it is viable (even a viable 0%, put it in in the 0.05 bucket)
+    mutate(value_bucket = ifelse(value == 0, 0,
+                                ifelse(value == 1, 1,
+                                       ifelse(value == 0.5, 0.5, 
+                                  ceiling(value*10)/10-0.05)))) %>% 
+  group_by(value_bucket) %>% 
+  summarise(n_won = sum(Outcome == "Win"),
+            n_total = n(),
+            prop_won = mean(Outcome == "Win"),
+            mean_value_in_bucket = mean(value)) %>% 
+  # Add 95% Confidence Intervals
+  mutate(conf_lower = purrr::map2_dbl(n_won, n_total, 
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[1]),
+         conf_upper = purrr::map2_dbl(n_won, n_total,
+                                       ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
+
+
+value_buckets %>% 
+  round(digits = 2)
+
+  
+  
+value_buckets%>% 
+  ggplot(aes(x = mean_value_in_bucket, y = prop_won)) + #, size = n_opportunities
+  geom_point(stat = "identity")  +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  geom_errorbar(aes(ymin = conf_lower, ymax = conf_upper), width = 0.05, size = 0.5, color = "grey33") + # Add confidence intervals
+
+  scale_x_continuous(limits = c(0, 1), 
+                     expand = expansion(add = c(0.01,0.01)),
+                     breaks = seq(0, 1, length.out = 11)) +
+  scale_y_continuous(limits = c(0, 1), 
+                     expand = expansion(add = c(0.01,0.001)), 
+                     breaks = seq(0, 1, length.out = 11)) +
+  labs(title = "Observed Proportion Games Won, by Game Value",
+       #subtitle = "",
+       x = "Value on Turn",
+       y = "% played")  +
+  theme_minimal() +
+  theme(
+    # Remove the y-axis
+    axis.title.y = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # Set x-axis breaks from 0 to 7
+    axis.ticks.length.x = unit(0, "cm") # Adjust tick length if needed
+  )
+```
+
+
 # Proportion of Play Analysis
 
 ## First turn table
@@ -737,8 +796,12 @@ prob_buckets_by_card %>%
   
 ```
 
+
+
 ### Impact of errors
 
+
+### Impact of different probabilities 
 When a player makes an "error" how does that affect their "win probability"? Are some players making "errors" that are really beneficial predictions of their opponent's move?
 
 ```{r}
