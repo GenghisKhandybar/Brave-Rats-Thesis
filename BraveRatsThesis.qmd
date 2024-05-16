@@ -251,26 +251,30 @@ card_avg_by_turn %>%
 
 # Adjusted probabilities
 card_avg_by_turn %>% 
+  group_by(turn) %>% 
   mutate(
     uniform_prob = 1 / (9-turn), # Uniform distribution's probability
-    adjusted_avg_prob = avg_prob /uniform_prob) %>% 
+    adjusted_avg_prob = avg_prob /mean(avg_prob)) %>% 
+  ungroup() %>% 
   select(card, adjusted_avg_prob, turn) %>% 
   pivot_wider(names_from = card, values_from = adjusted_avg_prob) %>% 
   round(2)
 
 # Adjusted Sd of optimal probs by turn
-card_avg_by_turn %>% 
-  mutate(uniform_prob = 1 / (9-turn),
-         adj_sd = sd / uniform_prob) %>% 
-  select(card, adj_sd, turn) %>% 
-  pivot_wider(names_from = card, values_from = adj_sd) %>% 
-  round(2)
+#card_avg_by_turn %>% 
+#  mutate(uniform_prob = 1 / (9-turn),
+#         adj_sd = sd / uniform_prob) %>% 
+#  select(card, adj_sd, turn) %>% 
+#  pivot_wider(names_from = card, values_from = adj_sd) %>% 
+#  round(2)
 
 
 card_avg_by_turn %>% 
+  group_by(turn) %>% 
   mutate(
     uniform_prob = 1 / (9-turn), # Uniform distribution's probability
-    adjusted_avg_prob = avg_prob /uniform_prob) %>% 
+    adjusted_avg_prob = avg_prob /mean(avg_prob)) %>% 
+  ungroup() %>% 
   ggplot(aes(x = turn, y = adjusted_avg_prob, color = card)) +
   geom_text(aes(label = card)) +
   geom_line()
@@ -695,6 +699,62 @@ value_buckets%>%
   )
 ```
 
+Including ties, looking at value as numeric
+
+```{r}
+value_buckets <- joined_human_ai %>% 
+  # If a card is not viable, put it in the 0 bucket.
+  # If it is viable (even a viable 0%, put it in in the 0.05 bucket)
+    mutate(outcome_val = ifelse(Outcome == "Win", 1, ifelse(Outcome=="Tie", 0.5, 0)),
+           value_bucket = ifelse(value == 0, 0,
+                                ifelse(value == 1, 1,
+                                       ifelse(value == 0.5, 0.5, 
+                                  ceiling(value*10)/10-0.05)))) %>% 
+  group_by(value_bucket) %>% 
+  summarise(avg_val = mean(outcome_val),
+            n_total = n(),
+            sd = sd(outcome_val),
+            mean_value_in_bucket = mean(value),
+            # Add 95% Confidence Intervals
+            conf_lower = avg_val - 2*(sd/n_total^0.5),
+            conf_upper = avg_val + 2*(sd/n_total^0.5)
+            ) %>% 
+  mutate(conf_lower = ifelse(sd > 0, conf_lower, NA),
+         conf_upper = ifelse(sd > 0, conf_upper, NA))
+  
+
+
+value_buckets %>% 
+  round(digits = 2)
+
+  
+  
+value_buckets%>% 
+  ggplot(aes(x = mean_value_in_bucket, y = avg_val)) + #, size = n_opportunities
+  geom_point(stat = "identity")  +
+  geom_abline(intercept = 0, slope = 1, color = "red") +
+  geom_errorbar(aes(ymin = conf_lower, ymax = conf_upper), width = 0.05, size = 0.5, color = "grey33") + # Add confidence intervals
+
+  scale_x_continuous(limits = c(0, 1), 
+                     expand = expansion(add = c(0.01,0.01)),
+                     breaks = seq(0, 1, length.out = 11)) +
+  scale_y_continuous(limits = c(0, 1), 
+                     expand = expansion(add = c(0.01,0.001)), 
+                     breaks = seq(0, 1, length.out = 11)) +
+  labs(title = "Mean Game Outcome by Game Value",
+       #subtitle = "",
+       x = "MiniMax Value of Current Turn",
+       y = "% played")  +
+  theme_minimal() +
+  theme(
+    # Remove the y-axis
+    axis.title.y = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # Set x-axis breaks from 0 to 7
+    axis.ticks.length.x = unit(0, "cm") # Adjust tick length if needed
+  )
+```
 
 # Proportion of Play Analysis
 
@@ -799,7 +859,28 @@ prob_buckets_by_card %>%
 
 
 ### Impact of errors
+```{r}
+value_changes %>% 
+  #filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
+  group_by(is_viable) %>% 
+  summarize(avg_change = mean(value_change), 
+            std_dev = sd(value_change),
+            n = n()) %>% 
+  mutate(se = std_dev/n^0.5,
+         conf_lower = avg_change - 2*se,
+         conf_upper = avg_change + 2*se) 
 
+value_changes$value_change
+
+# t-test on difference
+SE = (0.2050472/275 + 0.2238737/999)^0.5
+t = (-0.05183131 - 0.01426788)/ SE
+df = 239 + 797 - 2
+
+pt(t, df=df, lower.tail=TRUE)
+```
+
+There appears to be a small, but statistically insignificant difference between the value changes from plays that are "miastakes" vs. non-mistakes.
 
 ### Impact of different probabilities 
 When a player makes an "error" how does that affect their "win probability"? Are some players making "errors" that are really beneficial predictions of their opponent's move?
@@ -828,32 +909,7 @@ value_changes %>%
        x = "MiniMax Probability of Card Played")
 ```
 
-```{r}
-value_changes %>% 
-  #filter(p1_spy == FALSE & p2_spy == FALSE) %>% 
-  group_by(is_viable) %>% 
-  summarize(avg_change = mean(value_change), 
-            std_dev = sd(value_change),
-            n = n())
 
-value_changes$value_change
-
-# t-test on difference (non-spy)
-SE = (0.2362542/239 + 0.2356995/797)^0.5
-t = (-0.028737909 - 0.008617767)/ SE
-df = 239 + 797 - 2
-
-pt(t, df=df, lower.tail=TRUE)
-
-# t-test on difference (including spy turns)
-SE = (0.2104452/369 + 0.2239661/905)^0.5
-t = (-0.04017535 - 0.01638089)/ SE
-df = 369 + 905 - 2
-
-pt(t, df=df, lower.tail=TRUE)
-```
-
-There appears to be a small, but statistically insignificant difference between the value changes from plays that are "miastakes" vs. non-mistakes.
 
 ### Do some cards tend to increase value?
 
@@ -909,18 +965,19 @@ turns_per_game <- joined_human_ai %>%
   summarize(turns = max(turn)) 
 
 n_games <- nrow(turns_per_game)
+n_game_sides <- 2*n_games
 
 hist(turns_per_game$turns)
 
 joined_human_ai %>% 
-  filter(Flipped == FALSE) %>% 
+  #filter(Flipped == FALSE) %>% 
   ggplot(aes(x=turn)) +
   geom_bar(fill = 'white', color = "black", size = 1) +
   geom_text(aes(label = ..count..), 
             stat = 'count', 
             vjust = -0.5,  # Vertical adjustment for count
             color = 'black') +
-  geom_text(aes(label = scales::percent(..count.. / n_games, accuracy = 0.1)), 
+  geom_text(aes(label = scales::percent(..count.. / n_game_sides, accuracy = 0.1)), 
             stat = 'count', 
             vjust = 1.5,  # Vertical adjustment for proportion
             color = 'black') +
@@ -942,7 +999,7 @@ joined_human_ai %>%
     axis.ticks.length.x = unit(0, "cm"),  # Adjust tick length if needed
   ) +
   scale_x_continuous(breaks = 1:8) +
-  scale_y_continuous(expand = expansion(add = c(0,10)))
+  scale_y_continuous(expand = expansion(add = c(0,20)))
 
 mean(turns_per_game$turns)
 
