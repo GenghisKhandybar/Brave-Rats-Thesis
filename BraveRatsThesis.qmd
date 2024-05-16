@@ -391,7 +391,7 @@ played_vs_optimal %>%
                            ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
 ```
 
-By turn type
+### By turn type
 
 ```{r}
 played_vs_optimal %>% 
@@ -406,7 +406,13 @@ played_vs_optimal %>%
                                        ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[1]),
          conf_upper = purrr::map2_dbl(Viable, total, 
                                        ~ binom.test(.x, .y, alternative = "two.sided", conf.level = 0.95)$conf.int[2]))
+```
 
+CODE TO CHECK THAT THIS IS A REAL RESULT (echo = false to avoid large output):
+These are from different games and turns, indicating legitimacy. 
+
+```{r}
+#| echo: false
 # Manually checking which plays were correct, to make sure there's no data error
 played_vs_optimal %>% 
   filter(turn_type == "Going 1st", viability == TRUE, this_card_played == 1) %>% 
@@ -741,7 +747,7 @@ value_buckets%>%
   scale_y_continuous(limits = c(0, 1), 
                      expand = expansion(add = c(0.01,0.001)), 
                      breaks = seq(0, 1, length.out = 11)) +
-  labs(title = "Mean Game Outcome by Game Value",
+  labs(title = "Mean Payoff by Game Value",
        #subtitle = "",
        x = "MiniMax Value of Current Turn",
        y = "% played")  +
