@@ -6,7 +6,7 @@ np.seterr(divide='ignore', invalid='ignore')
 
 import helperFunctions
 
-# Deterministic solution used by multiple strategies
+# First, the 'default' way some models solve sequential turns
 def optimal_first_spy_strat(game, reducedMatrix, player, margin = 0.00001, row_sum_margin = 0.005):
     if player == 1:
         reducedMatrix = 1 - np.transpose(reducedMatrix)
@@ -77,7 +77,12 @@ def optimal_second_spy_strat(game, reducedMatrix, player, margin = 0.00001):
     
     return ans
 
+# Agents (models)
+
 class naive:
+    # This is a modifier to another model.
+    # Specify a model you'd like to modify and two value matrices you'd like them to use
+
     def __init__(self, model, path_normal, path_general_turn):
         # Initialize the model with naive value matrices from 2 existing solution files
         # The first is from any typical solution file
@@ -125,7 +130,6 @@ class randomNonSpy:
     def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
         return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
 
-# Agents (models)
 class intuitiveDistribution:
     def get_strategy(self, game, reducedMatrix, player, margin = 0.000001):
         # For each card our opponent can pick, we'll find the best card/cards to counter it.
@@ -153,9 +157,11 @@ class intuitiveDistribution:
     def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
         return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
 
+# Best Response Model
 class defeatStrategy:
     # This AI knows what strategy its opponent is playing and counters it perfectly
     # This is similar to how the Optimal AI decides which cards to play from an opponent's spy play
+    # This model is defined using another strategy profile opponentAI as a parameter
     def __init__(self, opponentAI):
         self.opponent = opponentAI
 
@@ -219,6 +225,7 @@ class defeatStrategy:
     def get_second_spy_strat(self, game, reducedMatrix, player, margin = 0.00001):
         return optimal_second_spy_strat(game, reducedMatrix, player, margin = margin)
 
+# Uniform model
 class fullRandom:
     def get_strategy(self, game, reducedMatrix, player):
         card_count = len(game.cardsAvailable[0])
@@ -233,7 +240,8 @@ class fullRandom:
     def get_second_spy_strat(self, game, reducedMatrix, player):
         base_strat = list(game.cardsAvailable[player])
         return [base_strat if i in game.cardsAvailable[abs(1-player)] else None for i in range(8)] 
-    
+
+# This model is used to play models 
 class savedModel:
     # This plays by the Simplex optimal solution. It does not solve the game.
     def __init__(self, path):
