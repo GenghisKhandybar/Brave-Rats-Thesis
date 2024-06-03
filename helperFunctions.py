@@ -1,7 +1,7 @@
 import numpy as np
 
-# Helper functions necessary for both models and solutionConsole
-# Primarily string manipulation
+# Helper functions necessary for both models.py and solutionConsole.py
+# Primarily string manipulation and reading/writing strategy profile files.
 
 def reverseGameState(gameState):
     game_str = gameState.split("-")

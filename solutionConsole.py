@@ -1,7 +1,8 @@
-# %% [markdown]
-# # Braverats Solver
+# This file contains:
+# - the class used to play Brave Rats
+# - the functions to solve the game and create more strategy profiles
+# - the functions to play the game and see model outputs in console
 
-# %%
 #Packages
 import numpy as np
 
@@ -13,14 +14,13 @@ from time import perf_counter as pc
 import models
 import helperFunctions
 
-# %%
 # Global reporting variables
 overall_startTime = pc()
 startTime = pc()
 saveStartTime = pc()
 computed_states = 0
 
-# %% ratGame class
+# ratGame class
 class ratGame:
     def __init__(self, game_str = None):
         self.game_size = 8 # Constant variable for total cards in Brave Rats
@@ -66,16 +66,29 @@ class ratGame:
          
         return(game_str)
 
-    def innerMatchup(self, values,effects): # Helper function is used for matchup to compare cards
+    def innerMatchup(self, values,effects): 
+        # Helper function is used for matchup to compare cards and abilities
+        # Used in advanceGameState
+        # Inputs: 
+        # - values (the strengths of the 2 cards, sorted from high to high)
+        # - effects (the effects active (no efect)) (8 = no effect)
+        # Outputs: Wins gained for higher strength card's player
+
+        # Return 0 for ties and Musician (0) effects
         if(values[0] == values[1] or effects[0] == 0 or effects[1] == 0):
             return 0
+        
         if(effects[0] == 7):
             if(effects[1] == 1):
-                return -4
+                return -4 # Prince vs. Princess effect
             else:
-                return 1
+                return 1 # Prince vs. anything other than Musician, tie, or Princess
+        
+        # Swap values (strengths) if assassin ability is active
         if(effects[0] == 3 or effects[1] == 3):
             values = (values[1],values[0])
+        
+        # Higher card wins
         if(values[0] > values[1]):
             return (1)
         else:
@@ -88,27 +101,33 @@ class ratGame:
         values = ((cards[0]+self.generals[0]*2), (cards[1]+self.generals[1]*2)) #Card Values 
         effects = (cards[0], cards[1])
 
-        if(effects[0] == 5 or effects[1] == 5): #WIZARD
+        # If either effect is wizard, remove all card abilities (effects)
+        if(effects[0] == 5 or effects[1] == 5): 
             effects = (8, 8) # 8 = no effect
-        if(values[0] < values[1]): #For the inner function, v0 > v1
-            a = -self.innerMatchup([values[1],values[0]],[effects[1],effects[0]])
+
+        #For the inner function, sort the values and effects so that v0 > v1
+        if(values[0] < values[1]): 
+            round_result = -self.innerMatchup([values[1],values[0]],[effects[1],effects[0]])
         else:
-            a = self.innerMatchup(values,effects)
-            
+            round_result = self.innerMatchup(values,effects)
+        
+        #Ambassador : Gives you +1 hold
         for i in range(2):
-            if(effects[i] == 4): #Ambassador : Gives you +1 hold
+            if(effects[i] == 4): 
                 self.holds[i] += 1 
 
-        if(a>0):
-            self.wins[0] += a + self.holds[0]
+        # Award wins to the correct player
+        if(round_result>0):
+            self.wins[0] += round_result + self.holds[0]
             self.holds = [0,0]
-        elif(a<0):
-            self.wins[1] += -a + self.holds[1]
+        elif(round_result<0):
+            self.wins[1] += -round_result + self.holds[1]
             self.holds = [0,0]
         else:
             self.holds[0] += 1
             self.holds[1] += 1
 
+        # Set up spy and general effects for next round
         self.spies = [0,0]
         self.generals = [0,0]
         for i in range(2):
@@ -119,6 +138,7 @@ class ratGame:
 
             self.cardsAvailable[i].remove(cards[i])
 
+        # Determine game winners
         if self.wins[0] >= 4:
             self.gameWinner = 0
         elif self.wins[1] >= 4:
@@ -201,7 +221,6 @@ class ratGame:
         for p1_next in self.cardsAvailable[0]:
             for p2_next in self.cardsAvailable[1]:
                 subGame = self.copy()
-
                 subGame.advanceGameState([p1_next, p2_next])
                 subGameStr = subGame.get_game_str()
                 
@@ -266,6 +285,7 @@ class ratGame:
         return val
     
     def copy(self):
+        # Create a copy of this game's state
         subGame = ratGame()
         subGame.cardsAvailable = [self.cardsAvailable[0].copy(), self.cardsAvailable[1].copy()]
         subGame.wins = self.wins[:]
@@ -276,6 +296,7 @@ class ratGame:
 
 # %% functions for command line interface
 def print_solution(statename, knownSolutions):
+    # Prins a solution based on a gamestate string
     game = ratGame(statename)
     if not (game.gameWinner is None): # If there's a winner, print this instead
         print('!!!!!!!! WINNER: PLAYER %d !!!!!!!!'%(game.gameWinner + 1))
@@ -283,9 +304,12 @@ def print_solution(statename, knownSolutions):
         print(create_solution_str(game ,knownSolutions[statename]))
 
 def standardize_decimal(num):
+    # Standardizes a number to a string
+    # Containing 4 digits, left justified in a total of 6 characters
     return str(round(float(num), 4)).ljust(6, " ")
 
 def create_solution_str(game, tup):
+    # Helper function to write 
     p1_cards_list = list(game.cardsAvailable[0])
     p2_cards_list = list(game.cardsAvailable[1])
 
@@ -316,31 +340,42 @@ def create_solution_str(game, tup):
     
     ans += "\nP1       "# + ",       ".join(map(str,game.cardsAvailable[1])))
     
+    # Preparing strings (depending on type of turn)
     if tup[3][0] != "r": # Not a spy response
         p1_prob_strings = ["(" + str(round(100*x)).rjust(3) + "%) " for x in p1_probs]
-    else:
+    else: # For Spy Response turns
         p1_prob_strings = ["       "]*8
     if tup[3][1] != "r": # Not a spy response
         p2_prob_strings = ["(" + str(round(100*x)).rjust(3) + "%) " for x in p2_probs]
-    else:
+    else: # For Spy Response turns
         p2_prob_strings = ["       "]*8
 
+    # Print Player 2's cards and probabilities
+    # On top of payoff matrix
     for i in range(len(p2_cards_list)):
         ans += f" {p2_cards_list[i]} {p2_prob_strings[i]}"
 
+    # Print Player 1's cards and probabilities 
     for i in range(len(p1_cards_list)):
         ans += f"\n{p1_cards_list[i]} {p1_prob_strings[i]} {'  | '.join(map(standardize_decimal,tup[2][i]))}"
 
     return ans
         
-def play_game(game, knownSolutions, players, models):
+def play_game(game, knownSolutions, players):
+    # Inputs:
+    # - Game
+    # - knownSolutions: a dictionary with a value matrix and probabilities for each player each turn
+    # Begins and plays a game
     state_str = game.get_game_str()
     solution = knownSolutions[state_str]
     game_size = len(game.cardsAvailable[0])
 
     plays = [None, None]
+    
+    # If Player 1 used a Spy, Player 2 has to pick first.
+    # Otherwise, Player 1 chooses first (Player 2 shouldn't see their choice on simultaneous turns though).
     play_order = [0,1]
-    if game.spies[0]==1:
+    if game.spies[0] == 1:
         play_order = [1,0]
 
     for player in play_order:
@@ -348,7 +383,7 @@ def play_game(game, knownSolutions, players, models):
         if p_type == "Human":
             choices = game.cardsAvailable[player]
             print('Choose card for player %d:'%(player + 1))
-            
+            # Input validation
             while True:
                 response = input()
                 if response.isdigit():
@@ -396,10 +431,6 @@ def play_game(game, knownSolutions, players, models):
     print_solution(game.get_game_str(), knownSolutions)
     play_game(game, knownSolutions, players)
 
-    
-
-# %%
-
 def game_loop(knownSolutions, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00'):
     while(True):
         print("Select starting position string. Hit enter to start a new game.")
@@ -444,8 +475,8 @@ def solve_game(savePath, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00
     helperFunctions.write_known_solutions(knownSolutions, savePath)
 
 def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-00-s-00-h-00'):
-    # Try to read the file "knownSolutions.txt"
-    # If we can't, create the solutions from scratch
+    # Try to read a solution file to start playing a game
+    # If there is no such file, 
     try:
         # Read solutions from file (5-10 seconds)
         print("Reading solutions...")
@@ -456,54 +487,65 @@ def default_console_start(path, start_gamestr = 'p1-01234567-p2-01234567-w-00-g-
         # If file couldn't be read, we'll make a new one
         print(e)
         print(f"Could not find solution. Solving game instead, will save to {path}.")
-        ans = input("Enter 'y' to solve game.")
+        ans = input("Enter 'y' to solve game (MiniMax vs. MiniMax).")
         if ans.lower() == 'y':
             solve_game(path, mirror_solutions = True,tempSavePath = "temp_solution.txt", loadFromTempSave = None, models= [models.simplexSolver(), models.simplexSolver()], save_interval= 600, report_interval = 60)
         else:
             return
 
     game_loop(knownSolutions, start_gamestr= start_gamestr)
-# %%
 
-OptimalPath = "SolutionFiles/updatedOptimalSolution.txt"
+# Run this function to solve all models used in thesis
+def solve_all(OptimalPath):
+    solve_game(savePath = OptimalPath, save_interval = 300, loadFromTempSave="temp_solution.txt")
+    solve_game(savePath = "SolutionFiles/SimplexVsRandom.txt", models=[models.savedModel(OptimalPath), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/DefeatVsRandom.txt", models=[models.defeatStrategy(models.fullRandom()), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/SimplexVsDefeat.txt", models=[models.savedModel(OptimalPath), models.defeatStrategy(models.savedModel(OptimalPath))])
+    # Also making the reverse matchup, for easy reading in R (for which cards are viable)
+    solve_game(savePath = "SolutionFiles/DefeatVsSimplex.txt", models=[models.defeatStrategy(models.savedModel(OptimalPath)), models.savedModel(OptimalPath)])
+
+    solve_game(savePath = "SolutionFiles/IntuitiveVsOptimal.txt", models=[models.intuitiveDistribution(), models.savedModel(OptimalPath)])
+    solve_game(savePath = "SolutionFiles/IntuitiveVsDefeater.txt", models=[models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"), models.defeatStrategy(models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"))])
+    solve_game(savePath = "SolutionFiles/IntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/RandomNonSpyVsSimplex.txt", models=[models.randomNonSpy(), models.savedModel(OptimalPath)])
+    solve_game(savePath = "SolutionFiles/RandomNonSpyVsDefeater.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.defeatStrategy(models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"))])
+    solve_game(savePath = "SolutionFiles/RandomNonSpyVsRandom.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/RandomNonSpyVsIntuitive.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
+
+    # Naive simplex
+    solve_game(savePath = "SolutionFiles/hypotheticalGeneralStart.txt", start_gamestr='p1-01234567-p2-01234567-w-00-g-10-s-00-h-00')
+    solve_game(savePath = "SolutionFiles/NaiveSimplexVsSimplex.txt", 
+               models=[models.naive(models.simplexSolver(), OptimalPath, "SolutionFiles/hypotheticalGeneralStart.txt"), 
+                       models.savedModel(OptimalPath)])
+    solve_game(savePath = "SolutionFiles/NaiveSimplexVsDefeat.txt",
+                models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), 
+                models.defeatStrategy(models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"))])
+    solve_game(savePath = "SolutionFiles/NaiveSimplexVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/NaiveSimplexVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
+    solve_game(savePath = "SolutionFiles/NaiveSimplexVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
+
+    # Naive Simplex
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsSimplex.txt", models=[
+        models.naive(models.intuitiveDistribution(), OptimalPath, "SolutionFiles/hypotheticalGeneralStart.txt"), 
+        models.savedModel(OptimalPath)])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsDefeat.txt",
+                models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), 
+                models.defeatStrategy(models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"))])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.fullRandom()])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
+    solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsNaiveSimplex.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt")])
+
+# Execution
+
+OptimalPath = "SolutionFiles/SimplexVsSimplex.txt"
 
 if __name__ == "__main__":
     # These are the commands to solve game for each pair of models
-
-    #solve_game(savePath = OptimalPath, save_interval = 300, loadFromTempSave="temp_solution.txt")
-    #solve_game(savePath = "SolutionFiles/SimplexVsRandom.txt", models=[models.savedModel(OptimalPath), models.fullRandom()])
-    #solve_game(savePath = "SolutionFiles/DefeatVsRandom.txt", models=[models.defeatStrategy(models.fullRandom()), models.fullRandom()])
-    #solve_game(savePath = "SolutionFiles/SimplexVsDefeat.txt", models=[models.savedModel(OptimalPath), models.defeatStrategy(models.savedModel(OptimalPath))])
-    #solve_game(savePath = "SolutionFiles/IntuitiveVsOptimal.txt", models=[models.intuitiveDistribution(), models.savedModel(OptimalPath)])
-    #solve_game(savePath = "SolutionFiles/IntuitiveVsDefeater.txt", models=[models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"), models.defeatStrategy(models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"))])
-    #solve_game(savePath = "SolutionFiles/IntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt"), models.fullRandom()])
-    #solve_game(savePath = "SolutionFiles/RandomNonSpyVsSimplex.txt", models=[models.randomNonSpy(), models.savedModel(OptimalPath)])
-    #solve_game(savePath = "SolutionFiles/RandomNonSpyVsDefeater.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.defeatStrategy(models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"))])
-    #solve_game(savePath = "SolutionFiles/RandomNonSpyVsRandom.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.fullRandom()])
-    #solve_game(savePath = "SolutionFiles/RandomNonSpyVsIntuitive.txt", models=[models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
-
-    # Naive simplex
-    #solve_game(savePath = "SolutionFiles/hypotheticalGeneralStart.txt", start_gamestr='p1-01234567-p2-01234567-w-00-g-10-s-00-h-00')
-    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsSimplex.txt", 
-    #           models=[models.naive(models.simplexSolver(), OptimalPath, "SolutionFiles/hypotheticalGeneralStart.txt"), 
-    #                   models.savedModel(OptimalPath)])
-    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsDefeat.txt",
-    #            models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), 
-    #            models.defeatStrategy(models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"))])
-    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.fullRandom()])
-    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
-    #solve_game(savePath = "SolutionFiles/NaiveSimplexVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
-
-    # Naive Simplex
-    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsSimplex.txt", models=[
-    #    models.naive(models.intuitiveDistribution(), OptimalPath, "SolutionFiles/hypotheticalGeneralStart.txt"), 
-    #    models.savedModel(OptimalPath)])
-    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsDefeat.txt",
-    #            models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), 
-    #            models.defeatStrategy(models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"))])
-    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandom.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.fullRandom()])
-    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsIntuitive.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/IntuitiveVsOptimal.txt")])
-    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsRandomNonSpy.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/RandomNonSpyVsSimplex.txt")])
-    #solve_game(savePath = "SolutionFiles/NaiveIntuitiveVsNaiveSimplex.txt", models=[models.savedModel("SolutionFiles/NaiveIntuitiveVsSimplex.txt"), models.savedModel("SolutionFiles/NaiveSimplexVsSimplex.txt")])
-
     default_console_start(OptimalPath)
+
+    # You can specify other paths to use other value matrices and optimal probabilities
+    #default_console_start("SolutionFiles/DefeatVsRandom.txt")
+
+    # Use the following function to solve all models used in thesis
+    solve_all(OptimalPath)

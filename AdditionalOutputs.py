@@ -70,17 +70,27 @@ def writeAllOptionValues(knownSolutions, writePath, precision = 6):
             reducedMatrix = tup[2]
             
             # Find the values
-            values = np.matmul(p2_strat, np.transpose(reducedMatrix))
+            # The way we do so depends on the type of turn.
+            turn_type = tup[3][0]
+            if turn_type == "s":
+                values = np.matmul(p2_strat, np.transpose(reducedMatrix))
 
-            # Expand the values to the size of all 8 cards
-            # (This will make it easier to read and interpret)
-            expanded_values = helperFunctions.expandProbabilities(values, game.cardsAvailable[0])
-            expanded_values = [str(round(x, precision)) if x in list(game.cardsAvailable[0]) else "" for x in expanded_values]
+                # Expand the values to the size of all 8 cards
+                # (This will make it easier to read and interpret)
+                expanded_values = helperFunctions.expandProbabilities(values, game.cardsAvailable[0])
+                # round hose values 
+                expanded_values = [str(round(x, precision)) if x in list(game.cardsAvailable[0]) else "" for x in expanded_values]
+            elif turn_type == "f":
+                # TODO: REDUCE THE INDECES OF P2's STRAT
+                expanded_values = [np.mean(reducedMatrix[p2_strat[x]][x]) if x in list(game.cardsAvailable[0]) else "" for x in range(8)]
+                for i in range(8):
+                    if i in list(game.cardsAvailable[0]):
+                        pass
+
 
             print(",".join(expanded_values))
 
             print(subGameStr)
-            print(values)
 
 
             #f.write('%s:%s\n' % (key, get_solution_save_string(cardsAvailiable, value)))
