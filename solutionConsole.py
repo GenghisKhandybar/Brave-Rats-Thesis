@@ -545,7 +545,8 @@ if __name__ == "__main__":
     default_console_start(OptimalPath)
 
     # You can specify other paths to use other value matrices and optimal probabilities
+    #default_console_start("SolutionFiles/NaiveSimplexVsDefeat.txt")
     #default_console_start("SolutionFiles/DefeatVsRandom.txt")
 
     # Use the following function to solve all models used in thesis
-    solve_all(OptimalPath)
+    #solve_all(OptimalPath)

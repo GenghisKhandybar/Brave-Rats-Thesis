@@ -243,8 +243,11 @@ class fullRandom:
 
 # This model is used to play models 
 class savedModel:
-    # This plays by the Simplex optimal solution. It does not solve the game.
-    def __init__(self, path):
+    # This plays an existing strategy profile. It does not solve the game.
+    def __init__(self, path, use_player_index = 0):
+        # use_player_index indicates which player in the game file we would like to play from
+        # Usually this is the first player (0), but in some cases we may want to use index 1.
+        self.use_player_index = use_player_index
         try:
             # Read solutions from file (5-10 seconds)
             print("Reading solutions...")
@@ -256,16 +259,16 @@ class savedModel:
 
     def get_strategy(self, game, reducedMatrix, player):
         # Get the strategy for the appropriate player
-        # We always want to use P1's strategy  from the save file. 
-        #For P2 turns, we find the corresponding turn for P1 and use that strategy.
-        p1_game_str = game.get_game_str() if player == 0 else helperFunctions.reverseGameState(game.get_game_str())
-        return self.knownSolutions[p1_game_str][1][0]
+        # Reverse the game string if we need to get the strategy that player 2 used
+        p1_game_str = game.get_game_str() if player == self.use_player_index else helperFunctions.reverseGameState(game.get_game_str())
+        return self.knownSolutions[p1_game_str][1][self.use_player_index]
     
     def get_first_spy_strat(self, game, reducedMatrix, player):
         # Get the strategy for the appropriate player
         return self.get_strategy(game, reducedMatrix, player)
 
     def get_second_spy_strat(self, game, reducedMatrix, player):
+        # Get the strategy for the appropriate player (it will be in the correct format)
         return self.get_strategy(game, reducedMatrix, player)
     
 class simplexSolver:
