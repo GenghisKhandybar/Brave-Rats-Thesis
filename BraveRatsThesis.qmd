@@ -31,7 +31,7 @@ library(knitr)
 source("readModelData.r")
 
 # A dataframe of MiniMax solution to every turn
-allTurns <- getAllTurns("SolutionFiles/updatedOptimalSolution.txt")
+allTurns <- getAllTurns("SolutionFiles/SimplexVsSimplex.txt")
 # MiniMax strategy for every turn (spy turns separated into N pieces)
 allOptimalStrategies <- getAllStrategies(allTurns)
 
@@ -268,24 +268,6 @@ card_avg_by_turn %>%
 #  pivot_wider(names_from = card, values_from = adj_sd) %>% 
 #  round(2)
 
-
-card_avg_by_turn %>% 
-  group_by(turn) %>% 
-  mutate(
-    uniform_prob = 1 / (9-turn), # Uniform distribution's probability
-    adjusted_avg_prob = avg_prob /mean(avg_prob)) %>% 
-  ungroup() %>% 
-  ggplot(aes(x = turn, y = adjusted_avg_prob, color = card)) +
-  scale_color_brewer(palette = "Set2") +
-  #geom_text(aes(label = card), position = position_dodge(width=0.5)) +
-  geom_line(size = 2, alpha = 0.75) +
-  geom_point(size = 3, alpha = 0.75) +
-  geom_abline(intercept = 1, slope = 0, color = "black") +
-  labs(x = "Turn",
-       y = "",
-       title = "Relative Optimal Probabilities By Turn",
-       legend = "Card")
-
 card_names <- c(
   "Musician",
   "Princess",
@@ -306,15 +288,14 @@ card_avg_by_turn %>%
   ungroup() %>% 
   mutate(card_label = factor(card_label, levels = paste0(card_names, " (", 0:7, ")"))) %>%
   ggplot(aes(x = turn, y = adjusted_avg_prob)) +
-  scale_color_brewer(palette = "Set2") +
-  #geom_text(aes(label = card), position = position_dodge(width=0.5)) +
   geom_line(size = 2, alpha = 0.75) +
   geom_point(size = 3, alpha = 0.75) +
   scale_x_continuous(breaks = 1:8) +
   geom_abline(intercept = 1, slope = 0, color = "red") +
   labs(x = "Turn",
        y = "",
-       title = "Avgerage Optimal Probability (Normalized)") +
+       title = "Relative MiniMax Play Frequencies (given that the card is in hand)",
+       subtitle = "Mean MiniMax probabilities, normalized so that each turn is centered at 1.") +
   facet_wrap(~card_label, scales = "free_x", nrow = 2)
 ```
 
@@ -499,11 +480,11 @@ played_vs_optimal %>%
   filter(optimal_prob == 1) %>% 
   mutate(card_played = ifelse(this_card_played == 1, "Played", "Not Played"),
          turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
-  group_by(card_played, turn_type, turn) %>% 
+  group_by(card_played, turn_type, Turn) %>% 
   summarize(n = n()) %>% 
   pivot_wider(names_from = card_played, values_from = n) %>% 
   mutate(accuracy = Played/(Played + `Not Played`)) %>% 
-  arrange(turn_type, turn)
+  arrange(turn_type, Turn)
 ```
 
 ```{r}
@@ -513,7 +494,7 @@ played_vs_optimal %>%
   filter(optimal_prob == 1) %>% 
   mutate(card_played = ifelse(this_card_played == 1, "Played", "Not Played"),
          turn_type = ifelse(p1_spy, "Going Second", ifelse(p2_spy, "Going first", "Simultaneous"))) %>% 
-  filter(turn_type == "Simultaneous", turn == 2)
+  filter(turn_type == "Simultaneous", Turn == 2)
 ```
 
 ```{r}
@@ -528,9 +509,9 @@ Turn-by-turn view: Column = card, row = turn of game. The most common "absolute 
 ```{r}
 played_vs_optimal %>% 
   filter(p1_spy == FALSE & p2_spy == FALSE, optimal_prob == 0, this_card_played == 1) %>% 
-  group_by(this_card, turn) %>% #
+  group_by(this_card, Turn) %>% #
   summarise(n_mistakes = n()) %>% 
-  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = turn)
+  pivot_wider(names_from = this_card, values_from = n_mistakes, id_cols = Turn)
 ```
 
 ### Spy turns
@@ -930,16 +911,6 @@ There appears to be a small, but statistically insignificant difference between 
 When a player makes an "error" how does that affect their "win probability"? Are some players making "errors" that are really beneficial predictions of their opponent's move?
 
 ```{r}
-
-value_changes <- joined_human_ai %>% 
-  group_by(Game, p1_name) %>% 
-  arrange(turn) %>% 
-   # next_turn_value is the value of the next turn. If game is over, use game outcome
-  mutate(next_turn_value = if_else(Turn != max(Turn), lead(value, n=1),
-                                if_else(Outcome == "Win", 1, if_else(Outcome == "Loss", 0, 0.5))),
-         value_change = next_turn_value - value) %>% 
-  left_join(played_vs_optimal %>% filter(this_card_played == 1))
-  
 # This plot is "Optimal probability of playing the card that was played" vs "change in value of game".
 value_changes %>% 
   filter(viability) %>% 
