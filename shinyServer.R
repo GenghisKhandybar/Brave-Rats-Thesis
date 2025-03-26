@@ -125,15 +125,12 @@ server <- function(input, output, session) {
         print(player2_probs)
         
         # Identify cards with non-NA probabilities
-        player1_cards <- which(!is.na(player1_probs)) - 1 # Cards for player 1
-        player2_cards <- which(!is.na(player2_probs)) - 1 # Cards for player 2
-        
-        state_info$player1_cards <- player1_cards
-        state_info$player2_cards <- player2_cards
+        state_info$player1_cards <- which(!is.na(player1_probs)) - 1 # Cards for player 1
+        state_info$player2_cards <- which(!is.na(player2_probs)) - 1 # Cards for player 2
         
         # Create labels with card number and probability percentage
-        player1_labels <- paste0(player1_cards, " (", round(player1_probs[player1_cards + 1] * 100, 1), "%)")
-        player2_labels <- paste0(player2_cards, " (", round(player2_probs[player2_cards + 1] * 100, 1), "%)")
+        player1_labels <- paste0(state_info$player1_cards, " (", round(player1_probs[state_info$player1_cards + 1] * 100, 1), "%)")
+        player2_labels <- paste0(state_info$player2_cards, " (", round(player2_probs[state_info$player2_cards + 1] * 100, 1), "%)")
         
         # Parse the EV matrix
         ev_matrix_raw <- unlist(strsplit(parsed_sections[8], " \\$ "))
@@ -190,11 +187,11 @@ server <- function(input, output, session) {
         })
         
         output$player1_table <- renderTable({
-          data.frame(Card = player1_labels, Probability = round(player1_probs[player1_cards + 1] * 100, 1))
+          data.frame(Card = player1_labels, Probability = round(player1_probs[state_info$player1_cards + 1] * 100, 1))
         }, rownames = FALSE)
         
         output$player2_table <- renderTable({
-          data.frame(Card = player2_labels, Probability = round(player2_probs[player2_cards + 1] * 100, 1))
+          data.frame(Card = player2_labels, Probability = round(player2_probs[state_info$player2_cards + 1] * 100, 1))
         }, rownames = FALSE)
         
         output$full_result_output <- renderText({
@@ -227,7 +224,6 @@ server <- function(input, output, session) {
   # Search when "Starting Position" button is clicked
   observeEvent(input$start_pos_btn, {
     print("Start button pressed")
-    #updateTextInput(session, "search_key", value = "p1-01234567-p2-01234567-w-00-g-00-s-00-h-00")
     perform_search("p1-01234567-p2-01234567-w-00-g-00-s-00-h-00")
   })
   
@@ -250,17 +246,16 @@ server <- function(input, output, session) {
     next_turn_string <- getNextTurnString(state_info$search_key, p1_card, p2_card)
     
     # Update the search input with the new key
-    
-    #updateTextInput(session, "search_key", value = next_turn_string)
     perform_search(next_turn_string)
   })
   
   # Automatically perform the initial search on app startup
-  #observe({
-  #  print("Starting up, searching for start position")
-  #  updateTextInput(session, "search_key", value = "p1-01234567-p2-01234567-w-00-g-00-s-00-h-00")
-  #  perform_search("p1-01234567-p2-01234567-w-00-g-00-s-00-h-00")
-  #})
+  observe({
+    isolate({
+    print("Starting up, searching for start position")
+    perform_search("p1-01234567-p2-01234567-w-00-g-00-s-00-h-00")
+    })
+  })
 }
 
 # Run the app
