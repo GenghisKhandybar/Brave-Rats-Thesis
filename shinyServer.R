@@ -17,8 +17,83 @@ library(DT) # For interactive and styled tables
 
 library(shiny)
 
-getNextTurnString <- function(current, p1_card, p2_card){
-  return("p1-01235-p2-01236-w-20-g-00-s-00-h-22")
+getNextTurnString <- function(current, state_info, P1, P2){
+  
+  P1_Strength = P1 + 2*state_info$generals[1]
+  P2_Strength = P2 + 2*state_info$generals[2]
+  print(paste0("P1 Strength:", P1_Strength))
+  # Outcome of the round - who won?
+  # There are several effects here. In order:
+  # If either player used a wizard (5) we simply compare strength.
+  
+  # Ways p1 could win:
+  # Greater strength, (IF: (Either player uses wizard) OR (Neither player uses Musician (0) or Wizard (3)))
+  Musician_In_Play = (P1 == 0 | P2 == 0) & (P1 != 5 & P2 != 5)
+  P1_Princess_Win = (P1 == 1 & P2 == 7)
+  P2_Princess_Win = (P2 == 1 & P1 == 7)
+  # We consider assassin's ability to be cancelled if either player uses Prince (7) because prince takes precedent
+  Assassin_In_Play = (P1 == 3 | P2 == 3) & (P1 != 5 & P2 != 5) & (P1 != 7 & P2 != 7)
+  # Ambassador will be factored in later
+  # Wizard already factored into others
+  # General affects next turn, not current turn
+  # Prince ability factored into Assassin
+  
+  # All factors to determine who won the round
+  Round_Winner_P1 = ifelse(Musician_In_Play, FALSE,
+                           ifelse(P1_Princess_Win, TRUE,
+                                  ifelse(P2_Princess_Win, FALSE,
+                                         ifelse(Assassin_In_Play, P1_Strength < P2_Strength,
+                                                P1_Strength > P2_Strength))))
+  Round_Winner_P2 = ifelse(Musician_In_Play, FALSE,
+                           ifelse(P2_Princess_Win, TRUE,
+                                  ifelse(P1_Princess_Win, FALSE,
+                                         ifelse(Assassin_In_Play, P2_Strength < P1_Strength,
+                                                P2_Strength > P1_Strength))))
+  Round_Tied = (!Round_Winner_P1) & (!Round_Winner_P2)
+  
+  # Now find round outcome
+  # Determine how many rounds were on hold at the start of the round.
+  
+  # First we need to calculate how many wins are added to the hold for each player on each turn
+  Rounds_Added_To_Hold_P1 = ifelse(!Round_Tied, -999, #If it's not a tie we'll record as -999
+                                   ifelse(P1 == 4 & P2 != 5, 2, 1) # Add two to hold if ambassador was used and tied 
+                                   # (Wizard (5) check is redundant but included for consistency)
+  )
+  
+  Rounds_Added_To_Hold_P2 = ifelse(!Round_Tied, -999, #If it's not a tie we'll record as -999
+                                   ifelse(P2 == 4 & P1 != 5, 2, 1) # Add two to hold if ambassador was used and tied 
+                                   # (Wizard (5) check is redundant but included for consistency)
+  )
+  
+  
+  # Write new state
+  player1_cards <- paste(state_info$player1_cards[state_info$player1_cards != P1], collapse='') # Remove Player 1's used card
+  player2_cards <- paste(state_info$player2_cards[state_info$player2_cards != P2], collapse='') # Remove Player 2's used card
+  
+  p1_wins = max(min(state_info$wins[1] + ifelse(Round_Winner_P1, 1 + state_info$holds[1] + 3*P1_Princess_Win + 1*(P1 == 4 & P2 != 5), 0),4),0) #Add new wins, truncate to 0-4
+  p2_wins = max(min(state_info$wins[2] + ifelse(Round_Winner_P2, 1 + state_info$holds[2] + 3*P2_Princess_Win + 1*(P2 == 4 & P1 != 5), 0),4),0)
+  
+  # Whether a player has had a spy used against them. They using a spy (2) or wizard (5) cancels this.
+  p1_spy = (P1 == 2 & P2 != 2 & P2 != 5)
+  p2_spy = (P2 == 2 & P1 != 2 & P1 != 5)
+  # Whether a player has successfully used a general the previous term. For simplicity, if both players use general, this effect is cancelled.
+  p1_gen = (P1 == 6 & P2 != 6 & P2 != 5)
+  p2_gen = (P2 == 6 & P1 != 6 & P1 != 5)
+  
+  # Adding holds first as they'll be used to add wins
+  p1_holds <- max(min(3, state_info$holds[1]+Rounds_Added_To_Hold_P1),0)
+  p2_holds <- max(min(3, state_info$holds[2]+Rounds_Added_To_Hold_P2),0)
+  
+  print(print(paste0("Old p1 cards:", state_info$player1_cards)))
+  print(paste0("New p1 cards:", player1_cards))
+  
+  new_state_str <- sprintf("p1-%s-p2-%s-w-%d%d-g-%d%d-s-%d%d-h-%d%d",
+                           player1_cards, player2_cards,
+                           p1_wins,p2_wins, p1_gen,p2_gen, p1_spy,p2_spy, p1_holds,p2_holds
+                           )
+  print(new_state_str)
+  #print(state_info)
+  return(new_state_str)
   #return(c(current, p1_card, p2_card))
 }
 
@@ -87,7 +162,6 @@ server <- function(input, output, session) {
   perform_search <- function(search_key) {
     print(paste0("Searching for ", search_key))
     
-    search_key <- search_key
     state_info$search_key <- search_key
     chunk_size <- 10000 # Number of lines to process at once
     
@@ -114,6 +188,14 @@ server <- function(input, output, session) {
       close(file_conn)
       
       if (!is.null(result)) {
+        # Parse the input's components
+        state_sections <- strsplit(search_key, "\\-")[[1]]
+        print(state_sections)
+        state_info$wins <- as.numeric(unlist(strsplit(state_sections[6], "")))
+        state_info$generals <- as.numeric(unlist(strsplit(state_sections[8], "")))
+        state_info$spies <- as.numeric(unlist(strsplit(state_sections[10], "")))
+        state_info$holds <- as.numeric(unlist(strsplit(state_sections[12], "")))
+        
         # Parse the result to extract necessary sections
         parsed_sections <- strsplit(result, "\\|")[[1]]
         game_value <- as.numeric(parsed_sections[2]) # Assuming the first number is in the second section
@@ -127,6 +209,7 @@ server <- function(input, output, session) {
         # Identify cards with non-NA probabilities
         state_info$player1_cards <- which(!is.na(player1_probs)) - 1 # Cards for player 1
         state_info$player2_cards <- which(!is.na(player2_probs)) - 1 # Cards for player 2
+
         
         # Create labels with card number and probability percentage
         player1_labels <- paste0(state_info$player1_cards, " (", round(player1_probs[state_info$player1_cards + 1] * 100, 1), "%)")
@@ -178,8 +261,6 @@ server <- function(input, output, session) {
             do.call(tags$tbody, table_rows)
           )
         })
-        
-        
         
         # Other outputs
         output$game_value_output <- renderText({
@@ -243,7 +324,7 @@ server <- function(input, output, session) {
     p2_card <- state_info$player2_cards[col_index]
     print(paste("Press:", p1_card, p2_card))
     # Call the function (implement getNextTurnString as needed)
-    next_turn_string <- getNextTurnString(state_info$search_key, p1_card, p2_card)
+    next_turn_string <- getNextTurnString(state_info$search_key, state_info, p1_card, p2_card)
     
     # Update the search input with the new key
     perform_search(next_turn_string)
